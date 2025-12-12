@@ -2,17 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>The Workshop | AR Companion</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } 
-      from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCg7B8tiS2_Kn_Ktl07SqA7NKBc_O7Rb3U",
@@ -24,51 +20,18 @@
     };
 
     let db;
-    function logToScreen(msg) {
-        const logEl = document.getElementById('screen-log');
-        if(logEl) logEl.innerText = msg;
-        console.log(msg);
-    }
-
     try {
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        // Wait slightly for DOM
-        setTimeout(() => logToScreen("System Ready. Scan painting."), 1500);
-    } catch (e) {
-        setTimeout(() => logToScreen("Firebase Error: " + e.message), 1500);
-    }
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      console.log("Firebase Init Success");
+    } catch(e) { console.error(e); }
 
-    // EXPOSE RATING FUNCTION
     window.submitRating = async (stars) => {
-        if (!db) { alert("Database not ready!"); return; }
-        
-        // UI Feedback
-        for (let i = 1; i <= 5; i++) {
-            const btn = document.getElementById(`star-${i}`);
-            if (i <= stars) {
-                btn.classList.add('text-yellow-400', 'scale-125');
-                btn.classList.remove('text-white/30');
-            } else {
-                btn.classList.remove('text-yellow-400');
-                btn.classList.add('text-white/30');
-            }
-        }
-        
-        try {
-            await addDoc(collection(db, "ratings"), {
-                painting: "The Butterfly Voyage",
-                stars: stars,
-                timestamp: serverTimestamp(),
-                device: navigator.userAgent
-            });
-            document.getElementById('rating-feedback').innerText = "Rating Saved!";
-            document.getElementById('rating-feedback').classList.remove('opacity-0');
-            logToScreen("Rating saved!");
-        } catch (e) {
-            console.error(e);
-            alert("Save failed. Check console.");
-        }
+      alert("Rating Clicked: " + stars); // Instant feedback
+      if(db) {
+         await addDoc(collection(db, "ratings"), { stars: stars, time: serverTimestamp() });
+         document.getElementById('feedback').innerText = "Saved!";
+      }
     }
   </script>
 
@@ -76,205 +39,99 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background-color: black; }
+    /* NUCLEAR CSS FIX */
+    body { margin: 0; overflow: hidden; }
     
-    /* CRITICAL FIX: Z-Index & Pointer Events */
-    #ui-layer { z-index: 20; pointer-events: none; } /* Layer is click-through */
-    #ui-scan { pointer-events: none; }
-    #ui-card { pointer-events: auto; } /* Card is clickable */
-    
-    #screen-log { z-index: 30; pointer-events: none; }
-    
-    /* TEST BUTTON FIX: High Z-Index + Forced Clickability */
-    #test-btn { 
-        z-index: 9999 !important; 
-        pointer-events: auto !important; 
-        cursor: pointer;
-    } 
-
-    .slide-up { transform: translateY(120%); transition: transform 0.4s ease-out; }
-    .slide-up.active { transform: translateY(0); }
-    
-    .scan-pulse { animation: pulse-border 2s infinite; }
-    @keyframes pulse-border {
-      0% { border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2); }
-      50% { border-color: rgba(255, 255, 255, 0.8); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
-      100% { border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+    /* 1. The AR Layer (Background) */
+    #scene-container { 
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+        z-index: 1; 
     }
+
+    /* 2. The UI Layer (Foreground) */
+    #ui-layer {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 9999; /* Highest priority */
+        pointer-events: none; /* Let clicks pass through empty space */
+        display: flex; flex-direction: column; justify-content: space-between;
+    }
+
+    /* 3. Interactive Elements (Must catch clicks) */
+    .interactive {
+        pointer-events: auto !important; /* Force clickability */
+        cursor: pointer;
+    }
+
+    /* Debug Visuals */
+    .debug-box { background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px; color: white; margin: 10px; }
   </style>
 
   <script>
-    const WHATSAPP_NUMBER = "971500000000"; 
-    
-    const GALLERY_DATA = [
-      {
-        id: "p1",
-        targetIndex: 0, 
-        title: "The Butterfly Voyage",
-        artist: "Julian Doe",
-        price: 15000,
-        currency: "AED",
-        isForSale: true,
-        description: "Oil on Canvas, 2025. A surrealist interpretation of migration and dreams.",
-        assets: [
-           { 
-             id: 'moon', type: 'model', src: './assets/moon.glb', 
-             animation: 'float_back', position: "0 0 0", scale: "0.5 0.5 0.5"      
-           },
-           {
-             id: 'butterflies', type: 'model', src: './assets/butterflies.glb', 
-             animation: 'chase_moon', position: "0.5 0 0", scale: "0.01 0.01 0.01", interactive: true
-           }
-        ]
-      }
-    ];
+    const GALLERY_DATA = { 
+        title: "The Butterfly Voyage", 
+        artist: "Julian Doe", 
+        price: "AED 15,000" 
+    };
 
-    function getAnimationString(type) {
-      switch (type) {
-        case 'float_back': return "property: position; to: 0 1.5 -2; dur: 8000; easing: easeInOutSine; loop: true; dir: alternate";
-        case 'chase_moon': return "property: rotation; to: 0 360 0; dur: 4000; easing: linear; loop: true";
-        default: return "";
-      }
+    function showCard() {
+        document.getElementById('card-panel').classList.remove('hidden');
+        document.getElementById('scan-text').classList.add('hidden');
     }
 
-    let isCardOpen = false; 
+    // AR EVENT LISTENERS
+    document.addEventListener("DOMContentLoaded", () => {
+        const scene = document.querySelector('a-scene');
+        const target = document.getElementById('target');
 
-    function initAR() {
-      const sceneContainer = document.getElementById('scene-container');
-      const TARGETS_URL = "./assets/targets.mind"; 
-
-      let html = `
-        <a-scene 
-          mindar-image="imageTargetSrc: ${TARGETS_URL}; filterMinCF:0.0001; filterBeta: 0.001; uiLoading: no; uiScanning: no;" 
-          color-space="sRGB" 
-          renderer="colorManagement: true, physicallyCorrectLights; preserveDrawingBuffer: true" 
-          vr-mode-ui="enabled: false" 
-          device-orientation-permission-ui="enabled: false">
-          <a-assets timeout="10000"></a-assets>
-          <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-      `;
-
-      GALLERY_DATA.forEach(painting => {
-        let assetsHtml = '';
-        painting.assets.forEach(asset => {
-          const anim = getAnimationString(asset.animation);
-          assetsHtml += `<a-gltf-model src="${asset.src}" position="${asset.position}" scale="${asset.scale}" animation="${anim}" visible="true"></a-gltf-model>`;
+        target.addEventListener("targetFound", () => {
+            console.log("Target Found");
+            showCard(); // Trigger UI
         });
-        html += `<a-entity mindar-image-target="targetIndex: ${painting.targetIndex}" data-id="${painting.id}">${assetsHtml}</a-entity>`;
-      });
-
-      html += `</a-scene>`;
-      sceneContainer.innerHTML = html;
-      setTimeout(setupEventListeners, 1000); 
-    }
-
-    function setupEventListeners() {
-      const targets = document.querySelectorAll('[mindar-image-target]');
-      const uiScan = document.getElementById('ui-scan');
-      
-      targets.forEach(target => {
-        target.addEventListener('targetFound', () => {
-          if(isCardOpen) return;
-          const id = target.getAttribute('data-id');
-          const data = GALLERY_DATA.find(p => p.id === id);
-          
-          uiScan.classList.add('opacity-0'); 
-          logToScreen("TARGET FOUND!");
-          showInfoCard(data); 
-        });
-
-        target.addEventListener('targetLost', () => {
-            if(!isCardOpen) uiScan.classList.remove('opacity-0');
-        });
-      });
-    }
-
-    // EXPOSED GLOBALLY FOR BUTTON CLICK
-    window.forceOpenCard = () => {
-        logToScreen("Opening UI...");
-        const uiScan = document.getElementById('ui-scan');
-        if(uiScan) uiScan.classList.add('opacity-0');
-        showInfoCard(GALLERY_DATA[0]);
-    }
-
-    function showInfoCard(data) {
-      if(!data) return;
-      isCardOpen = true;
-
-      document.getElementById('card-title').innerText = data.title;
-      document.getElementById('card-artist').innerText = data.artist;
-      document.getElementById('card-desc').innerText = data.description;
-      
-      const btn = document.getElementById('btn-action');
-      document.getElementById('btn-action-text').innerText = "Inquire on WhatsApp";
-      btn.onclick = () => {
-         const text = encodeURIComponent(`Hi, I am interested in "${data.title}" by ${data.artist}.`);
-         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank');
-      };
-
-      const card = document.getElementById('ui-card');
-      card.classList.remove('translate-y-full'); // Tailwind way
-      card.classList.add('active'); // CSS way
-    }
-
-    window.closeCard = () => {
-        isCardOpen = false;
-        document.getElementById('ui-card').classList.remove('active');
-        document.getElementById('ui-scan').classList.remove('opacity-0');
-    }
-
-    window.addEventListener('DOMContentLoaded', initAR);
+    });
   </script>
 </head>
 <body>
-  <div id="scene-container" class="absolute inset-0 z-0"></div>
 
-  <div id="screen-log" class="fixed top-20 left-0 w-full bg-black/70 text-green-400 text-xs p-2 text-center pointer-events-none font-mono">
-      Initializing...
+  <div id="scene-container">
+    <a-scene 
+      mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: no; uiLoading: no;" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-entity id="target" mindar-image-target="targetIndex: 0">
+        <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5"></a-gltf-model>
+        <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01" animation="property: rotation; to: 0 360 0; loop: true; dur: 4000"></a-gltf-model>
+      </a-entity>
+    </a-scene>
   </div>
 
-  <button id="test-btn" onclick="window.forceOpenCard()" class="fixed top-6 left-6 bg-blue-600 text-white px-6 py-4 rounded-lg shadow-xl font-bold text-sm uppercase tracking-wider active:scale-95 transition">
-      Test UI
-  </button>
-
-  <div id="ui-layer" class="fixed inset-0 flex flex-col justify-between">
+  <div id="ui-layer">
     
-    <div class="h-20"></div>
-
-    <div id="ui-scan" class="absolute inset-0 flex items-center justify-center transition-opacity duration-500">
-      <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative scan-pulse">
-        <p class="absolute -bottom-10 left-0 right-0 text-center text-white/80 font-light tracking-widest text-sm uppercase">Align Artwork</p>
-      </div>
+    <div class="w-full flex justify-start p-4">
+        <button onclick="showCard()" class="interactive bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-xl border-2 border-white">
+            FORCE SHOW UI
+        </button>
     </div>
 
-    <div id="ui-card" class="slide-up w-full p-6 pb-10">
-      <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl relative">
-        <button onclick="window.closeCard()" class="absolute top-4 right-4 bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20 cursor-pointer pointer-events-auto">✕</button>
+    <div id="scan-text" class="text-white text-center text-xl font-bold drop-shadow-md mt-20">
+        SCAN PAINTING
+    </div>
 
-        <div class="mb-4 pr-10">
-           <h2 id="card-title" class="text-2xl font-light mb-1">Title</h2>
-           <p id="card-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">Artist</p>
+    <div id="card-panel" class="interactive hidden m-4 bg-white rounded-xl shadow-2xl p-6 mb-10">
+        <h2 class="text-2xl font-bold text-gray-800">The Butterfly Voyage</h2>
+        <p class="text-gray-500">Julian Doe</p>
+        
+        <div class="flex gap-4 my-4 justify-center">
+            <button onclick="submitRating(1)" class="interactive text-3xl hover:scale-110">⭐</button>
+            <button onclick="submitRating(5)" class="interactive text-3xl hover:scale-110">⭐⭐⭐⭐⭐</button>
         </div>
+        <div id="feedback" class="text-center text-green-600 font-bold"></div>
 
-        <div class="flex flex-col items-center mb-6">
-            <div class="flex gap-2">
-                <button id="star-1" onclick="window.submitRating(1)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
-                <button id="star-2" onclick="window.submitRating(2)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
-                <button id="star-3" onclick="window.submitRating(3)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
-                <button id="star-4" onclick="window.submitRating(4)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
-                <button id="star-5" onclick="window.submitRating(5)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
-            </div>
-            <p id="rating-feedback" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Saved</p>
-        </div>
-
-        <div class="flex items-center gap-3">
-           <button id="btn-action" class="flex-1 bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer pointer-events-auto">
-             <span id="btn-action-text">Action</span>
-           </button>
-        </div>
-
-      </div>
+        <button onclick="window.open('https://wa.me/971500000000', '_blank')" class="interactive w-full bg-green-500 text-white font-bold py-4 rounded-lg mt-2 text-lg">
+            INQUIRE (AED 15,000)
+        </button>
     </div>
   </div>
+
 </body>
 </html>
