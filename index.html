@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>The Workshop | AR Companion</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
 
   <script type="module">
@@ -23,14 +24,31 @@
     try {
       const app = initializeApp(firebaseConfig);
       db = getFirestore(app);
-      console.log("Firebase Init Success");
-    } catch(e) { console.error(e); }
+    } catch(e) { console.error("Firebase Error", e); }
 
+    // RATING LOGIC
     window.submitRating = async (stars) => {
-      alert("Rating Clicked: " + stars); // Instant feedback
+      // 1. Visual Feedback (Gold Stars)
+      for(let i=1; i<=5; i++) {
+          const el = document.getElementById('star-'+i);
+          if(i <= stars) el.classList.add('text-yellow-400');
+          else el.classList.remove('text-yellow-400');
+      }
+
+      // 2. Save to DB
       if(db) {
-         await addDoc(collection(db, "ratings"), { stars: stars, time: serverTimestamp() });
-         document.getElementById('feedback').innerText = "Saved!";
+         try {
+             await addDoc(collection(db, "ratings"), { 
+                 painting: "The Butterfly Voyage",
+                 stars: stars, 
+                 timestamp: serverTimestamp(),
+                 device: navigator.userAgent
+             });
+             document.getElementById('feedback-text').innerText = "Thanks! Rating Saved.";
+             document.getElementById('feedback-text').classList.remove('opacity-0');
+         } catch(e) { alert("Save Error: " + e.message); }
+      } else {
+          alert("Database not connected (Check Keys)");
       }
     }
   </script>
@@ -39,98 +57,104 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    /* NUCLEAR CSS FIX */
-    body { margin: 0; overflow: hidden; }
+    /* 1. FORCE FULL SCREEN */
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: black; }
     
-    /* 1. The AR Layer (Background) */
-    #scene-container { 
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-        z-index: 1; 
-    }
+    /* 2. THE LAYERS STRATEGY */
+    #ar-layer { position: absolute; inset: 0; z-index: 1; }
+    #ui-layer { position: absolute; inset: 0; z-index: 50; pointer-events: none; } /* Clicks pass through */
+    
+    /* 3. INTERACTIVE ELEMENTS (Must trap clicks) */
+    .interactive { pointer-events: auto !important; cursor: pointer; }
 
-    /* 2. The UI Layer (Foreground) */
-    #ui-layer {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        z-index: 9999; /* Highest priority */
-        pointer-events: none; /* Let clicks pass through empty space */
-        display: flex; flex-direction: column; justify-content: space-between;
-    }
-
-    /* 3. Interactive Elements (Must catch clicks) */
-    .interactive {
-        pointer-events: auto !important; /* Force clickability */
-        cursor: pointer;
-    }
-
-    /* Debug Visuals */
-    .debug-box { background: rgba(0,0,0,0.8); padding: 10px; border-radius: 8px; color: white; margin: 10px; }
+    /* 4. ANIMATIONS */
+    .slide-up-enter { transform: translateY(100%); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+    .slide-up-active { transform: translateY(0); }
   </style>
 
   <script>
-    const GALLERY_DATA = { 
-        title: "The Butterfly Voyage", 
-        artist: "Julian Doe", 
-        price: "AED 15,000" 
-    };
-
+    // UI LOGIC
     function showCard() {
-        document.getElementById('card-panel').classList.remove('hidden');
-        document.getElementById('scan-text').classList.add('hidden');
+        const card = document.getElementById('info-card');
+        const scan = document.getElementById('scan-guide');
+        card.classList.add('slide-up-active'); // Show Card
+        scan.classList.add('opacity-0');       // Hide Scanner
+    }
+
+    function closeCard() {
+        const card = document.getElementById('info-card');
+        const scan = document.getElementById('scan-guide');
+        card.classList.remove('slide-up-active'); // Hide Card
+        scan.classList.remove('opacity-0');       // Show Scanner
     }
 
     // AR EVENT LISTENERS
     document.addEventListener("DOMContentLoaded", () => {
-        const scene = document.querySelector('a-scene');
         const target = document.getElementById('target');
-
         target.addEventListener("targetFound", () => {
             console.log("Target Found");
-            showCard(); // Trigger UI
+            showCard();
         });
     });
   </script>
 </head>
 <body>
 
-  <div id="scene-container">
+  <div id="ar-layer">
     <a-scene 
       mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: no; uiLoading: no;" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      
       <a-entity id="target" mindar-image-target="targetIndex: 0">
-        <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5"></a-gltf-model>
-        <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01" animation="property: rotation; to: 0 360 0; loop: true; dur: 4000"></a-gltf-model>
+        <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5" animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
+        <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01" animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
       </a-entity>
     </a-scene>
   </div>
 
-  <div id="ui-layer">
+  <div id="ui-layer" class="flex flex-col justify-between p-6">
     
-    <div class="w-full flex justify-start p-4">
-        <button onclick="showCard()" class="interactive bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-xl border-2 border-white">
-            FORCE SHOW UI
+    <div class="w-full flex justify-between items-start">
+        <h1 class="text-white font-bold tracking-widest text-lg uppercase drop-shadow-md">The Workshop</h1>
+        <button onclick="showCard()" class="interactive bg-blue-600/50 text-white text-xs px-3 py-1 rounded-full backdrop-blur-md">
+            Test UI
         </button>
     </div>
 
-    <div id="scan-text" class="text-white text-center text-xl font-bold drop-shadow-md mt-20">
-        SCAN PAINTING
-    </div>
-
-    <div id="card-panel" class="interactive hidden m-4 bg-white rounded-xl shadow-2xl p-6 mb-10">
-        <h2 class="text-2xl font-bold text-gray-800">The Butterfly Voyage</h2>
-        <p class="text-gray-500">Julian Doe</p>
-        
-        <div class="flex gap-4 my-4 justify-center">
-            <button onclick="submitRating(1)" class="interactive text-3xl hover:scale-110">⭐</button>
-            <button onclick="submitRating(5)" class="interactive text-3xl hover:scale-110">⭐⭐⭐⭐⭐</button>
+    <div id="scan-guide" class="absolute inset-0 flex items-center justify-center transition-opacity duration-500 pointer-events-none">
+        <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative">
+            <p class="absolute -bottom-10 w-full text-center text-white/80 font-light tracking-widest text-sm uppercase">Align Artwork</p>
         </div>
-        <div id="feedback" class="text-center text-green-600 font-bold"></div>
+    </div>
 
-        <button onclick="window.open('https://wa.me/971500000000', '_blank')" class="interactive w-full bg-green-500 text-white font-bold py-4 rounded-lg mt-2 text-lg">
-            INQUIRE (AED 15,000)
+    <div id="info-card" class="interactive bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500">
+        
+        <button onclick="closeCard()" class="interactive absolute top-4 right-4 bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20">✕</button>
+
+        <div class="mb-4">
+           <h2 class="text-2xl font-light mb-1">The Butterfly Voyage</h2>
+           <p class="text-white/60 text-sm font-medium tracking-wide uppercase">Julian Doe</p>
+        </div>
+
+        <div class="flex flex-col items-center mb-6">
+            <div class="flex gap-2">
+                <button id="star-1" onclick="submitRating(1)" class="interactive text-3xl text-white/30 transition">★</button>
+                <button id="star-2" onclick="submitRating(2)" class="interactive text-3xl text-white/30 transition">★</button>
+                <button id="star-3" onclick="submitRating(3)" class="interactive text-3xl text-white/30 transition">★</button>
+                <button id="star-4" onclick="submitRating(4)" class="interactive text-3xl text-white/30 transition">★</button>
+                <button id="star-5" onclick="submitRating(5)" class="interactive text-3xl text-white/30 transition">★</button>
+            </div>
+            <p id="feedback-text" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Saved</p>
+        </div>
+
+        <button onclick="window.open('https://wa.me/971500000000?text=I%20am%20interested%20in%20The%20Butterfly%20Voyage', '_blank')" 
+                class="interactive w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+            <span>Inquire (AED 15,000)</span>
         </button>
     </div>
+
   </div>
 
 </body>
