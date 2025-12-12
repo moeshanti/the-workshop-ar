@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>The Workshop | AR Companion</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,11 +14,21 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; background: transparent; }
+    /* FIX 2: Force Full Screen & Remove Scrollbars */
+    html, body {
+      width: 100%; height: 100%; 
+      margin: 0; padding: 0; 
+      overflow: hidden; 
+      background-color: black; /* Visual check: if you see black, css loaded */
+    }
+    
+    /* UI Transitions */
     .fade-enter { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease-out, transform 0.7s ease-out; }
     .fade-enter-active { opacity: 1; transform: translateY(0); }
     .slide-up { transform: translateY(120%); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
     .slide-up.active { transform: translateY(0); }
+    
+    /* Scanner Animation */
     .scan-pulse { animation: pulse-border 2s infinite; }
     @keyframes pulse-border {
       0% { border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2); }
@@ -26,12 +36,20 @@
       100% { border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
     }
     .a-enter-vr-button { display: none; }
+    
+    /* Debug Text (Bottom Left) */
+    #debug-log {
+        position: fixed; bottom: 10px; left: 10px; 
+        color: lime; font-family: monospace; font-size: 10px; 
+        pointer-events: none; z-index: 9999;
+        text-shadow: 1px 1px 2px black;
+    }
   </style>
 
   <script>
-    const WHATSAPP_NUMBER = "971500000000"; // Replace with real number
+    const WHATSAPP_NUMBER = "971500000000"; 
 
-    // CONFIGURATION: Points to the files you uploaded to the ROOT of your repo
+    // DATA: FIX 1 - Updated Paths to point to ./assets/ folder
     const GALLERY_DATA = [
       {
         id: "p1",
@@ -46,29 +64,28 @@
            { 
              id: 'moon', 
              type: 'model',
-             src: './moon.glb', // Looking for this file in your repo
+             src: './assets/moon.glb', // UPDATED PATH
              animation: 'float_back',
-             position: "0 0.5 -0.5",
-             scale: "0.2 0.2 0.2"
+             position: "0 0 0",        // Centered
+             scale: "0.5 0.5 0.5"      // Made Duck Bigger
            },
            {
              id: 'butterflies',
              type: 'model',
-             src: './butterflies.glb', // Looking for this file in your repo
+             src: './assets/butterflies.glb', // UPDATED PATH
              animation: 'chase_moon',
-             position: "0 0 0",
-             scale: "0.1 0.1 0.1",
+             position: "0.5 0 0",
+             scale: "0.05 0.05 0.05",  // Fox is naturally huge, scaling down
              interactive: true
            }
         ]
       }
     ];
 
-    // Animation Helpers
     function getAnimationString(type) {
       switch (type) {
         case 'float_back': return "property: position; to: 0 1.5 -2; dur: 8000; easing: easeInOutSine; loop: true; dir: alternate";
-        case 'chase_moon': return "property: position; to: 0 1.2 -1.5; dur: 7000; easing: easeInOutSine; loop: true; dir: alternate";
+        case 'chase_moon': return "property: rotation; to: 0 360 0; dur: 4000; easing: linear; loop: true";
         default: return "";
       }
     }
@@ -76,11 +93,16 @@
     let activeTimeout = null;
     let currentPainting = null;
 
+    function log(msg) {
+        document.getElementById('debug-log').innerText = msg;
+        console.log(msg);
+    }
+
     function initAR() {
       const sceneContainer = document.getElementById('scene-container');
-      
-      // POINTING TO YOUR LOCAL FILE NOW
-      const TARGETS_URL = "./targets.mind"; 
+      const TARGETS_URL = "./assets/targets.mind"; // UPDATED PATH
+
+      log("Initializing AR...");
 
       let html = `
         <a-scene 
@@ -90,14 +112,15 @@
           vr-mode-ui="enabled: false" 
           device-orientation-permission-ui="enabled: false">
           
-          <a-assets></a-assets>
-          <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+          <a-assets timeout="10000"></a-assets>
+          <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
       `;
 
       GALLERY_DATA.forEach(painting => {
         let assetsHtml = '';
         painting.assets.forEach(asset => {
           const anim = getAnimationString(asset.animation);
+          // Add 'model-loaded' event listener to debug
           assetsHtml += `
             <a-gltf-model 
               src="${asset.src}" 
@@ -105,18 +128,17 @@
               scale="${asset.scale}" 
               animation="${anim}"
               class="${asset.interactive ? 'clickable' : ''}"
+              visible="true"
             ></a-gltf-model>
           `;
         });
-
         html += `<a-entity mindar-image-target="targetIndex: ${painting.targetIndex}" data-id="${painting.id}">${assetsHtml}</a-entity>`;
       });
 
       html += `</a-scene>`;
       sceneContainer.innerHTML = html;
       
-      // Allow DOM to update before attaching listeners
-      setTimeout(setupEventListeners, 500); 
+      setTimeout(setupEventListeners, 1000); 
     }
 
     function setupEventListeners() {
@@ -125,20 +147,30 @@
       
       targets.forEach(target => {
         target.addEventListener('targetFound', () => {
+          log("TARGET FOUND! Look for Models.");
           const id = target.getAttribute('data-id');
           currentPainting = GALLERY_DATA.find(p => p.id === id);
           
-          uiScan.classList.add('opacity-0'); // Hide scanner
+          uiScan.classList.add('opacity-0'); 
           
           if (activeTimeout) clearTimeout(activeTimeout);
-          activeTimeout = setTimeout(() => showInfoCard(currentPainting), 5000); // 5s Delay
+          activeTimeout = setTimeout(() => showInfoCard(currentPainting), 5000); 
         });
 
         target.addEventListener('targetLost', () => {
-          uiScan.classList.remove('opacity-0'); // Show scanner
-          document.getElementById('ui-card').classList.remove('active'); // Hide card
+          log("Target Lost. Searching...");
+          uiScan.classList.remove('opacity-0'); 
+          document.getElementById('ui-card').classList.remove('active'); 
           if (activeTimeout) clearTimeout(activeTimeout);
         });
+      });
+      
+      // Monitor Model Loading
+      document.querySelector('a-scene').addEventListener('model-loaded', (evt) => {
+          log("Success: A 3D Model loaded!");
+      });
+      document.querySelector('a-scene').addEventListener('model-error', (evt) => {
+          log("Error: Could not load 3D Model. Check paths.");
       });
     }
 
@@ -181,7 +213,9 @@
 <body>
   <div id="scene-container" class="absolute inset-0 z-0"></div>
 
-  <div id="ui-layer" class="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
+  <div id="debug-log">Loading...</div>
+
+  <div id="ui-layer" class="fixed inset-0 pointer-events-none z-10 flex flex-col justify-between">
     <div class="p-6 w-full flex justify-between items-start pointer-events-auto">
       <h1 class="text-white font-bold tracking-widest text-lg uppercase drop-shadow-md">The Workshop</h1>
     </div>
@@ -196,7 +230,7 @@
       </div>
     </div>
 
-    <div id="ui-card" class="slide-up w-full p-6 pointer-events-auto">
+    <div id="ui-card" class="slide-up w-full p-6 pointer-events-auto pb-10">
       <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl relative">
         <div class="mb-2">
            <h2 id="card-title" class="text-2xl font-light mb-1">Title</h2>
