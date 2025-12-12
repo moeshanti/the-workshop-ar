@@ -33,11 +33,13 @@
     try {
         const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
-        setTimeout(() => logToScreen("System Ready. Scan painting."), 1000);
+        // Wait slightly for DOM
+        setTimeout(() => logToScreen("System Ready. Scan painting."), 1500);
     } catch (e) {
-        setTimeout(() => logToScreen("Firebase Error: " + e.message), 1000);
+        setTimeout(() => logToScreen("Firebase Error: " + e.message), 1500);
     }
 
+    // EXPOSE RATING FUNCTION
     window.submitRating = async (stars) => {
         if (!db) { alert("Database not ready!"); return; }
         
@@ -76,10 +78,19 @@
   <style>
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background-color: black; }
     
-    /* Fix Z-Index issues */
-    #ui-layer { z-index: 20; }
-    #screen-log { z-index: 30; }
-    #test-btn { z-index: 40; } /* Ensure Test Button is on top */
+    /* CRITICAL FIX: Z-Index & Pointer Events */
+    #ui-layer { z-index: 20; pointer-events: none; } /* Layer is click-through */
+    #ui-scan { pointer-events: none; }
+    #ui-card { pointer-events: auto; } /* Card is clickable */
+    
+    #screen-log { z-index: 30; pointer-events: none; }
+    
+    /* TEST BUTTON FIX: High Z-Index + Forced Clickability */
+    #test-btn { 
+        z-index: 9999 !important; 
+        pointer-events: auto !important; 
+        cursor: pointer;
+    } 
 
     .slide-up { transform: translateY(120%); transition: transform 0.4s ease-out; }
     .slide-up.active { transform: translateY(0); }
@@ -180,7 +191,7 @@
 
     // EXPOSED GLOBALLY FOR BUTTON CLICK
     window.forceOpenCard = () => {
-        logToScreen("Button Clicked. Opening UI...");
+        logToScreen("Opening UI...");
         const uiScan = document.getElementById('ui-scan');
         if(uiScan) uiScan.classList.add('opacity-0');
         showInfoCard(GALLERY_DATA[0]);
@@ -218,27 +229,27 @@
 <body>
   <div id="scene-container" class="absolute inset-0 z-0"></div>
 
-  <div id="screen-log" class="fixed top-12 left-0 w-full bg-black/70 text-green-400 text-xs p-2 text-center pointer-events-none font-mono">
+  <div id="screen-log" class="fixed top-20 left-0 w-full bg-black/70 text-green-400 text-xs p-2 text-center pointer-events-none font-mono">
       Initializing...
   </div>
 
-  <button id="test-btn" onclick="window.forceOpenCard()" class="fixed top-4 left-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg font-bold text-sm uppercase tracking-wider active:scale-95 transition cursor-pointer pointer-events-auto">
+  <button id="test-btn" onclick="window.forceOpenCard()" class="fixed top-6 left-6 bg-blue-600 text-white px-6 py-4 rounded-lg shadow-xl font-bold text-sm uppercase tracking-wider active:scale-95 transition">
       Test UI
   </button>
 
-  <div id="ui-layer" class="fixed inset-0 flex flex-col justify-between pointer-events-none">
+  <div id="ui-layer" class="fixed inset-0 flex flex-col justify-between">
     
     <div class="h-20"></div>
 
-    <div id="ui-scan" class="absolute inset-0 flex items-center justify-center transition-opacity duration-500 pointer-events-none">
+    <div id="ui-scan" class="absolute inset-0 flex items-center justify-center transition-opacity duration-500">
       <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative scan-pulse">
         <p class="absolute -bottom-10 left-0 right-0 text-center text-white/80 font-light tracking-widest text-sm uppercase">Align Artwork</p>
       </div>
     </div>
 
-    <div id="ui-card" class="slide-up w-full p-6 pointer-events-auto pb-10">
+    <div id="ui-card" class="slide-up w-full p-6 pb-10">
       <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl relative">
-        <button onclick="window.closeCard()" class="absolute top-4 right-4 bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20 cursor-pointer">✕</button>
+        <button onclick="window.closeCard()" class="absolute top-4 right-4 bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20 cursor-pointer pointer-events-auto">✕</button>
 
         <div class="mb-4 pr-10">
            <h2 id="card-title" class="text-2xl font-light mb-1">Title</h2>
@@ -247,11 +258,11 @@
 
         <div class="flex flex-col items-center mb-6">
             <div class="flex gap-2">
-                <button id="star-1" onclick="window.submitRating(1)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer">★</button>
-                <button id="star-2" onclick="window.submitRating(2)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer">★</button>
-                <button id="star-3" onclick="window.submitRating(3)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer">★</button>
-                <button id="star-4" onclick="window.submitRating(4)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer">★</button>
-                <button id="star-5" onclick="window.submitRating(5)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer">★</button>
+                <button id="star-1" onclick="window.submitRating(1)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
+                <button id="star-2" onclick="window.submitRating(2)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
+                <button id="star-3" onclick="window.submitRating(3)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
+                <button id="star-4" onclick="window.submitRating(4)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
+                <button id="star-5" onclick="window.submitRating(5)" class="text-3xl text-white/30 hover:text-yellow-400 transition cursor-pointer pointer-events-auto">★</button>
             </div>
             <p id="rating-feedback" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Saved</p>
         </div>
