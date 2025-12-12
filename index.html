@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>The Workshop | AR Companion</title>
+
+  <!-- 1. Fonts & Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 2. Core Libraries: A-Frame & MindAR -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      overflow: hidden;
+      background: transparent; /* Essential for AR video feed */
+    }
+
+    /* UI Transitions */
+    .fade-enter {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+    }
+    .fade-enter-active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .slide-up {
+      transform: translateY(120%);
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .slide-up.active {
+      transform: translateY(0);
+    }
+
+    /* Scan Guide Animation */
+    .scan-pulse {
+      animation: pulse-border 2s infinite;
+    }
+    @keyframes pulse-border {
+      0% { border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2); }
+      50% { border-color: rgba(255, 255, 255, 0.8); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+      100% { border-color: rgba(255, 255, 255, 0.3); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+    }
+    
+    /* Hide VR Button */
+    .a-enter-vr-button { display: none; }
+  </style>
+
+  <script>
+    // ==========================================
+    // 1. THE DATA STRUCTURE (The Brain)
+    // ==========================================
+    const WHATSAPP_NUMBER = "971500000000";
+    
+    // NOTE: For this demo, targetIndex 0 matches the MindAR "Card" demo example.
+    const GALLERY_DATA = [
+      {
+        id: "p1",
+        targetIndex: 0, 
+        title: "The Butterfly Voyage",
+        artist: "Julian Doe",
+        price: 15000,
+        currency: "AED",
+        isForSale: true,
+        description: "Oil on Canvas, 2025. A surrealist interpretation of migration and dreams.",
+        assets: [
+           { 
+             id: 'moon', 
+             type: 'model',
+             src: 'https://cdn.aframe.io/examples/ar/models/triceratops/triceratops.glb', // Placeholder model
+             animation: 'float_back',
+             position: "0 0 0",
+             scale: "0.05 0.05 0.05"
+           },
+           {
+             id: 'butterflies',
+             type: 'model',
+             src: 'https://cdn.aframe.io/examples/ar/models/reticle/reticle.glb', // Placeholder model
+             animation: 'chase_moon',
+             position: "0.5 0 0.2",
+             scale: "0.1 0.1 0.1",
+             interactive: true // Flag to enable click listener
+           }
+        ]
+      },
+      {
+        id: "p2",
+        targetIndex: 1,
+        title: "Midnight in Kyoto",
+        artist: "Aiko Tanaka",
+        price: 0,
+        currency: "AED",
+        isForSale: false,
+        description: "Digital Media Print. Not for commercial sale.",
+        assets: [
+           { 
+             id: 'lanterns', 
+             type: 'primitive', // Fallback for demo
+             animation: 'rise_up',
+             position: "0 -0.5 0.2",
+             scale: "0.2 0.2 0.2"
+           }
+        ]
+      }
+    ];
+
+    // ==========================================
+    // 2. A-FRAME COMPONENTS (Logic)
+    // ==========================================
+
+    /**
+     * Component: flutter-on-tap
+     * Adds interactivity to specific 3D models.
+     */
+    AFRAME.registerComponent('flutter-on-tap', {
+      init: function () {
+        const el = this.el;
+        
+        // Visual cue that it's clickable (optional, logic handled by raycaster)
+        el.classList.add('clickable');
+
+        el.addEventListener('click', (evt) => {
+          console.log("Butterfly tapped!");
+          
+          // 1. Calculate random offset
+          const randomX = (Math.random() - 0.5) * 0.8;
+          const randomY = (Math.random() - 0.5) * 0.8;
+          const currentPos = el.getAttribute('position');
+
+          // 2. Trigger animation via attribute
+          // We use 'animation__click' namespace to avoid conflict with looping animations
+          el.setAttribute('animation__click', {
+            property: 'position',
+            to: `${currentPos.x + randomX} ${currentPos.y + randomY} ${currentPos.z}`,
+            dur: 300,
+            easing: 'easeOutElastic',
+            dir: 'alternate',
+            loop: 2
+          });
+        });
+      }
+    });
+
+    /**
+     * Logic Mapping: Helper to get animation strings
+     */
+    function getAnimationString(type) {
+      switch (type) {
+        case 'float_back':
+          return "property: position; to: 0 0 -0.5; dur: 3000; easing: easeInOutSine; loop: true; dir: alternate";
+        case 'rise_up':
+          return "property: position; to: 0 0.8 0.2; dur: 4000; easing: easeOutQuad; loop: true";
+        case 'chase_moon':
+          return "property: rotation; to: 0 -360 0; dur: 8000; easing: linear; loop: true";
+        default:
+          return "";
+      }
+    }
+
+    // ==========================================
+    // 3. APP LOGIC (Render & State)
+    // ==========================================
+
+    let activeTimeout = null;
+    let currentPainting = null;
+
+    function initAR() {
+      const sceneContainer = document.getElementById('scene-container');
+      
+      // We use the Card Example for the Preview so it works immediately. 
+      // In Production, change this to: url(./assets/targets.mind)
+      const DEMO_TARGETS = "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/examples/image-tracking/assets/card-example/card.mind";
+
+      let html = `
+        <a-scene 
+          mindar-image="imageTargetSrc: ${DEMO_TARGETS}; filterMinCF:0.0001; filterBeta: 0.001; uiLoading: no; uiScanning: no;" 
+          color-space="sRGB" 
+          renderer="colorManagement: true, physicallyCorrectLights; preserveDrawingBuffer: true" 
+          vr-mode-ui="enabled: false" 
+          device-orientation-permission-ui="enabled: false">
+          
+          <a-assets></a-assets>
+
+          <!-- Camera with Raycaster for Click Events -->
+          <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+      `;
+
+      // Loop through Data to generate Entities
+      GALLERY_DATA.forEach(painting => {
+        let assetsHtml = '';
+        
+        painting.assets.forEach(asset => {
+          const anim = getAnimationString(asset.animation);
+          const interactiveAttr = asset.interactive ? 'flutter-on-tap' : '';
+          
+          if (asset.type === 'model') {
+            assetsHtml += `
+              <a-gltf-model 
+                src="${asset.src}" 
+                position="${asset.position}" 
+                scale="${asset.scale}" 
+                animation="${anim}"
+                ${interactiveAttr}
+              ></a-gltf-model>
+            `;
+          } else {
+            // Primitive fallback
+            assetsHtml += `
+              <a-entity 
+                geometry="primitive: sphere; radius: 0.5" 
+                material="color: white; opacity: 0.8; metalness: 0.5; roughness: 0.2"
+                position="${asset.position}" 
+                scale="${asset.scale}"
+                animation="${anim}"
+                ${interactiveAttr}
+              ></a-entity>
+            `;
+          }
+        });
+
+        html += `
+          <a-entity mindar-image-target="targetIndex: ${painting.targetIndex}" data-id="${painting.id}">
+            ${assetsHtml}
+          </a-entity>
+        `;
+      });
+
+      html += `</a-scene>`;
+      sceneContainer.innerHTML = html;
+
+      // Attach Event Listeners after injection
+      setupEventListeners();
+    }
+
+    function setupEventListeners() {
+      const targets = document.querySelectorAll('[mindar-image-target]');
+      const uiScan = document.getElementById('ui-scan');
+      const uiCard = document.getElementById('ui-card');
+
+      targets.forEach(target => {
+        target.addEventListener('targetFound', (e) => {
+          const id = target.getAttribute('data-id');
+          console.log("Found:", id);
+          
+          currentPainting = GALLERY_DATA.find(p => p.id === id);
+          
+          // UI Logic: Attract -> Engage
+          uiScan.classList.add('opacity-0');
+          
+          // UI Logic: Engage -> Convert (Wait 5 seconds)
+          if (activeTimeout) clearTimeout(activeTimeout);
+          activeTimeout = setTimeout(() => {
+            showInfoCard(currentPainting);
+          }, 5000);
+        });
+
+        target.addEventListener('targetLost', (e) => {
+          console.log("Lost");
+          currentPainting = null;
+          
+          // Reset UI
+          uiScan.classList.remove('opacity-0');
+          uiCard.classList.remove('active');
+          
+          if (activeTimeout) clearTimeout(activeTimeout);
+        });
+      });
+    }
+
+    function showInfoCard(data) {
+      if(!data) return;
+
+      // Populate Data
+      document.getElementById('card-title').innerText = data.title;
+      document.getElementById('card-artist').innerText = data.artist;
+      document.getElementById('card-desc').innerText = data.description;
+      
+      // Configure Action Button
+      const actionBtn = document.getElementById('btn-action');
+      const actionText = document.getElementById('btn-action-text');
+      
+      if (data.isForSale) {
+        actionText.innerText = `${data.currency} ${data.price.toLocaleString()}`;
+        actionBtn.onclick = () => alert("Added to cart! (Demo)");
+        actionBtn.className = "flex-1 bg-white text-black font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition active:scale-95 shadow-lg";
+      } else {
+        actionText.innerText = "Inquire";
+        actionBtn.className = "flex-1 bg-green-500/90 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 transition active:scale-95 shadow-lg backdrop-blur-sm";
+        actionBtn.onclick = () => {
+          const text = encodeURIComponent(`Hi, I'm interested in "${data.title}" by ${data.artist}.`);
+          window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank');
+        };
+      }
+
+      // Show Card
+      document.getElementById('ui-card').classList.add('active');
+    }
+
+    function takeSnapshot() {
+      const scene = document.querySelector('a-scene');
+      
+      // Simple Approach: Use A-Frame's screenshot component (Captures AR content on transparent bg)
+      const canvas = scene.components.screenshot.getCanvas('perspective');
+      
+      const link = document.createElement('a');
+      link.download = `the-workshop-ar-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function shareExperience() {
+      if (navigator.share) {
+        navigator.share({
+          title: 'The Workshop AR',
+          text: 'Check out this art coming to life!',
+          url: window.location.href
+        });
+      } else {
+        alert("Sharing not supported on this device.");
+      }
+    }
+
+    // Initialize on Load
+    window.addEventListener('DOMContentLoaded', initAR);
+
+  </script>
+</head>
+<body>
+
+  <!-- ========================
+       AR LAYER
+       ======================== -->
+  <div id="scene-container" class="absolute inset-0 z-0">
+    <!-- Scene injected by initAR() -->
+  </div>
+
+  <!-- ========================
+       UI LAYER
+       ======================== -->
+  <div id="ui-layer" class="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
+    
+    <!-- Header -->
+    <div class="p-6 w-full flex justify-between items-start pointer-events-auto">
+      <h1 class="text-white font-bold tracking-widest text-lg uppercase drop-shadow-md">The Workshop</h1>
+    </div>
+
+    <!-- 1. Attract: Scanning Guide -->
+    <div id="ui-scan" class="absolute inset-0 flex items-center justify-center transition-opacity duration-500">
+      <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative scan-pulse">
+        <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white -mt-1 -ml-1 rounded-tl-lg"></div>
+        <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white -mt-1 -mr-1 rounded-tr-lg"></div>
+        <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white -mb-1 -ml-1 rounded-bl-lg"></div>
+        <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white -mb-1 -mr-1 rounded-br-lg"></div>
+        <p class="absolute -bottom-10 left-0 right-0 text-center text-white/80 font-light tracking-widest text-sm uppercase">Align Artwork</p>
+      </div>
+    </div>
+
+    <!-- 2. Engage/Convert: Info Card -->
+    <div id="ui-card" class="slide-up w-full p-6 pointer-events-auto">
+      <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl overflow-hidden relative">
+        <!-- Glossy Shine -->
+        <div class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
+
+        <div class="relative z-10">
+          <div class="mb-2">
+            <h2 id="card-title" class="text-2xl font-light mb-1">Title</h2>
+            <p id="card-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">Artist</p>
+          </div>
+          <div class="my-4 h-px w-full bg-white/20"></div>
+          <p id="card-desc" class="text-gray-300 text-sm mb-6 leading-relaxed line-clamp-3">Description</p>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-3">
+            <!-- Dynamic Commerce Button -->
+            <button id="btn-action">
+              <span id="btn-action-text">Action</span>
+            </button>
+
+            <!-- Snapshot -->
+            <button onclick="takeSnapshot()" class="bg-white/10 border border-white/20 hover:bg-white/20 text-white p-3 rounded-xl transition active:scale-95" aria-label="Snapshot">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </button>
+
+            <!-- Share -->
+            <button onclick="shareExperience()" class="bg-white/10 border border-white/20 hover:bg-white/20 text-white p-3 rounded-xl transition active:scale-95" aria-label="Share">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
