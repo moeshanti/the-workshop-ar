@@ -7,26 +7,34 @@
   
   <style>
     body { margin: 0; overflow: hidden; }
-    /* Simple Scanning UI */
+    /* The Status Monitor */
+    #debug-console {
+      position: fixed; top: 0; left: 0; width: 100%;
+      background: rgba(0, 0, 0, 0.8); color: lime;
+      font-family: monospace; font-size: 14px;
+      padding: 10px; z-index: 9999; pointer-events: none;
+    }
+    .square {
+      width: 250px; height: 250px;
+      border: 4px solid red; /* Made it thicker to see easily */
+    }
     #scanning-overlay {
       position: absolute; left: 0; top: 0; width: 100%; height: 100%;
       display: flex; align-items: center; justify-content: center;
       pointer-events: none; z-index: 10;
     }
-    .square {
-      width: 250px; height: 250px;
-      border: 2px solid white;
-    }
   </style>
 </head>
 <body>
+
+  <div id="debug-console">Initializing...</div>
 
   <div id="scanning-overlay">
     <div class="square"></div>
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/examples/image-tracking/assets/card-example/card.mind; uiScanning: no; uiLoading: no;" 
+    mindar-image="imageTargetSrc: https://raw.githubusercontent.com/hiukim/mind-ar-js/master/examples/image-tracking/assets/card-example/card.mind; uiScanning: no; uiLoading: no;" 
     color-space="sRGB" 
     renderer="colorManagement: true, physicallyCorrectLights" 
     vr-mode-ui="enabled: false" 
@@ -34,12 +42,39 @@
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity mindar-image-target="targetIndex: 0">
-      
-      <a-box position="0 0 0" scale="0.5 0.5 0.5" color="red" animation="property: rotation; to: 0 360 0; dur: 2000; loop: true"></a-box>
-      
+    <a-entity mindar-image-target="targetIndex: 0" id="target-entity">
+      <a-box position="0 0 0" scale="0.5 0.5 0.5" color="blue" animation="property: rotation; to: 0 360 0; dur: 2000; loop: true"></a-box>
     </a-entity>
   </a-scene>
+
+  <script>
+    const debug = document.getElementById('debug-console');
+    const scene = document.querySelector('a-scene');
+    const target = document.getElementById('target-entity');
+
+    // 1. Listen for Scene Load
+    scene.addEventListener('loaded', () => {
+      debug.innerText = "Scene Loaded. Waiting for Camera...";
+    });
+
+    // 2. Listen for MindAR Ready (This confirms the .mind file loaded)
+    scene.addEventListener('arReady', () => {
+      debug.innerText = "System READY! Scan the Card now.";
+      debug.style.background = "rgba(0, 100, 0, 0.8)"; // Turn Green
+    });
+
+    // 3. Listen for MindAR Error
+    scene.addEventListener('arError', (event) => {
+      debug.innerText = "ERROR: " + (event.detail.error || "Unknown");
+      debug.style.background = "rgba(255, 0, 0, 0.8)"; // Turn Red
+    });
+
+    // 4. Listen for Target Found
+    target.addEventListener('targetFound', () => {
+      debug.innerText = "TARGET FOUND! Look at the Box!";
+      debug.style.background = "blue";
+    });
+  </script>
 
 </body>
 </html>
