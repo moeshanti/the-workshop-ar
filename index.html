@@ -96,7 +96,11 @@
 
         const message = `Hi! I am interested in the painting "${ARTWORK_DATA.title}" by ${ARTWORK_DATA.artist} (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price}). Is it available?`;
         const url = `https://wa.me/${ARTWORK_DATA.whatsappNumber}?text=${encodeURIComponent(message)}`;
-        document.getElementById('btn-inquire').onclick = () => window.open(url, '_blank');
+        
+        // Touchstart is safer for mobile buttons
+        const btn = document.getElementById('btn-inquire');
+        btn.ontouchstart = () => window.open(url, '_blank');
+        btn.onclick = () => window.open(url, '_blank'); // Fallback for desktop
     }
 
     function startExperience() {
@@ -116,8 +120,9 @@
         card.classList.add('translate-y-0');
     }
 
-    // FIXED CLOSE FUNCTION
-    window.closeCard = function() {
+    // FIXED CLOSE FUNCTION - EXPOSED GLOBALLY
+    window.closeCard = function(e) {
+        if(e) e.preventDefault(); // Stop any other event firing
         isCardOpen = false;
         const card = document.getElementById('info-card');
         card.classList.add('translate-y-full');
@@ -139,6 +144,11 @@
         
         document.body.addEventListener('click', screenTapped);
         document.body.addEventListener('touchstart', screenTapped);
+
+        // ATTACH CLOSE EVENT DIRECTLY
+        const closeBtn = document.getElementById('btn-close');
+        closeBtn.ontouchstart = window.closeCard;
+        closeBtn.onclick = window.closeCard;
     });
   </script>
 </head>
@@ -173,7 +183,9 @@
 
     <div id="info-card" class="interactive bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out">
         
-        <button onclick="closeCard()" class="interactive absolute top-4 right-4 bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20 z-50">✕</button>
+        <button id="btn-close" class="interactive absolute top-4 right-4 bg-white/10 w-12 h-12 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20 z-50 p-2">
+            <span class="text-xl pointer-events-none">✕</span>
+        </button>
 
         <div class="mb-4">
            <h2 id="lbl-title" class="text-2xl font-light mb-1">...</h2>
