@@ -27,14 +27,11 @@
     } catch(e) { console.error("Firebase Init Error", e); }
 
     window.submitRating = async (stars) => {
-      // 1. Visual Update
       for(let i=1; i<=5; i++) {
         const star = document.getElementById(`star-${i}`);
         if(i <= stars) star.classList.add('text-yellow-400');
         else star.classList.remove('text-yellow-400');
       }
-      
-      // 2. Database Save
       if(db) {
          try {
            await addDoc(collection(db, "ratings"), {
@@ -82,11 +79,11 @@
     // --- CONFIGURATION ---
     const ARTWORK_DATA = {
         title: "The Butterfly Voyage",
-        artist: "Majd Kurdieh", // Updated Artist Name
+        artist: "Majd Kurdieh",
         currency: "AED",
         price: "15,000",
         whatsappNumber: "971559522980",
-        animationDuration: 8000 // 8 Seconds Delay
+        animationDuration: 8000 
     };
 
     let isCardOpen = false;
@@ -102,14 +99,9 @@
         document.getElementById('btn-inquire').onclick = () => window.open(url, '_blank');
     }
 
-    // "CINEMATIC" LOGIC
     function startExperience() {
-        // 1. Hide Scanner Guide Immediately
         document.getElementById('scan-guide').classList.add('opacity-0');
-        
-        // 2. Wait for Animation, then show card
         if(!isCardOpen) {
-            console.log(`Starting Cinematic Timer: ${ARTWORK_DATA.animationDuration}ms`);
             animationTimer = setTimeout(() => {
                 openCard();
             }, ARTWORK_DATA.animationDuration);
@@ -119,26 +111,23 @@
     function openCard() {
         if(isCardOpen) return;
         isCardOpen = true;
-        
         const card = document.getElementById('info-card');
         card.classList.remove('translate-y-full'); 
         card.classList.add('translate-y-0');
     }
 
-    function closeCard() {
+    // FIXED CLOSE FUNCTION
+    window.closeCard = function() {
         isCardOpen = false;
         const card = document.getElementById('info-card');
         card.classList.add('translate-y-full');
         card.classList.remove('translate-y-0');
-        
-        // No longer looking for 3D text, so this won't crash!
     }
 
-    // Tap Screen to Skip Delay
     function screenTapped() {
         if(!isCardOpen && animationTimer) {
             clearTimeout(animationTimer);
-            openCard(); // Skip delay
+            openCard(); 
         }
     }
 
@@ -146,11 +135,8 @@
         updateUI();
         const target = document.getElementById('target');
         
-        target.addEventListener("targetFound", () => {
-            startExperience(); 
-        });
-
-        // Listen for screen taps to skip delay
+        target.addEventListener("targetFound", () => { startExperience(); });
+        
         document.body.addEventListener('click', screenTapped);
         document.body.addEventListener('touchstart', screenTapped);
     });
@@ -159,7 +145,9 @@
 <body>
 
   <a-scene 
-    mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: no; uiLoading: no;" 
+    mindar-image="imageTargetSrc: ./assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01; uiScanning: no; uiLoading: no;" 
+    color-space="sRGB" 
+    renderer="colorManagement: true, physicallyCorrectLights; logarithmicDepthBuffer: true;" 
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
@@ -168,8 +156,7 @@
     <a-entity id="target" mindar-image-target="targetIndex: 0">
         <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5" animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
         <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01" animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
-        
-        </a-entity>
+    </a-entity>
   </a-scene>
 
   <div id="ui-layer" class="flex flex-col justify-between p-6 pb-10">
@@ -186,7 +173,7 @@
 
     <div id="info-card" class="interactive bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out">
         
-        <button onclick="closeCard()" class="absolute top-4 right-4 bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20">✕</button>
+        <button onclick="closeCard()" class="interactive absolute top-4 right-4 bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20 z-50">✕</button>
 
         <div class="mb-4">
            <h2 id="lbl-title" class="text-2xl font-light mb-1">...</h2>
