@@ -11,6 +11,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    // --- CONFIGURATION ---
     const firebaseConfig = {
       apiKey: "AIzaSyCg7B8tiS2_Kn_Ktl07SqA7NKBc_O7Rb3U",
       authDomain: "the-workshop-ar.firebaseapp.com",
@@ -27,15 +28,18 @@
     } catch(e) { console.error("Firebase Init Error", e); }
 
     window.submitRating = async (stars) => {
+      // Visual Update
       for(let i=1; i<=5; i++) {
         const star = document.getElementById(`star-${i}`);
         if(i <= stars) star.classList.add('text-yellow-400');
         else star.classList.remove('text-yellow-400');
       }
+      
+      // Save to Database
       if(db) {
          try {
            await addDoc(collection(db, "ratings"), {
-             painting: "The Butterfly Voyage",
+             painting: "The Butterfly Voyage", // We could also make this dynamic!
              stars: stars,
              timestamp: serverTimestamp()
            });
@@ -49,7 +53,7 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    /* 1. RESET & TRANSPARENCY (CRITICAL FIX) */
+    /* 1. RESET & TRANSPARENCY */
     html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
 
     /* 2. THE VIDEO LAYER (BACKGROUND) */
@@ -63,7 +67,7 @@
         width: auto !important;
         height: auto !important;
         object-fit: cover !important;
-        z-index: -10 !important; /* Put it way back */
+        z-index: -10 !important;
     }
 
     /* 3. THE AR CANVAS (MODELS) */
@@ -73,7 +77,7 @@
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
-        z-index: 1 !important; /* On top of video */
+        z-index: 1 !important;
         background: transparent !important;
     }
 
@@ -89,6 +93,30 @@
   </style>
 
   <script>
+    // --- SINGLE SOURCE OF TRUTH ---
+    // Change details here, and the whole app updates automatically.
+    const ARTWORK_DATA = {
+        title: "The Butterfly Voyage",
+        artist: "Julian Doe",
+        currency: "AED",
+        price: "15,000",
+        whatsappNumber: "971559522980"
+    };
+
+    function updateUI() {
+        // 1. Fill Text on Screen
+        document.getElementById('lbl-title').innerText = ARTWORK_DATA.title;
+        document.getElementById('lbl-artist').innerText = ARTWORK_DATA.artist;
+        document.getElementById('btn-text').innerText = `Inquire (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price})`;
+
+        // 2. Build Dynamic WhatsApp Link
+        const message = `Hi! I am interested in the painting "${ARTWORK_DATA.title}" by ${ARTWORK_DATA.artist} (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price}). Is it available?`;
+        const url = `https://wa.me/${ARTWORK_DATA.whatsappNumber}?text=${encodeURIComponent(message)}`;
+        
+        // 3. Attach to Button
+        document.getElementById('btn-inquire').onclick = () => window.open(url, '_blank');
+    }
+
     function openCard() {
         const card = document.getElementById('info-card');
         const guide = document.getElementById('scan-guide');
@@ -106,6 +134,9 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+        // Initialize Data
+        updateUI();
+
         const target = document.getElementById('target');
         target.addEventListener("targetFound", () => {
             openCard(); 
@@ -148,8 +179,8 @@
         <button onclick="closeCard()" class="absolute top-4 right-4 bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20">✕</button>
 
         <div class="mb-4">
-           <h2 class="text-2xl font-light mb-1">The Butterfly Voyage</h2>
-           <p class="text-white/60 text-sm font-medium tracking-wide uppercase">Julian Doe</p>
+           <h2 id="lbl-title" class="text-2xl font-light mb-1">Loading...</h2>
+           <p id="lbl-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">Loading...</p>
         </div>
 
         <div class="flex flex-col items-center mb-6">
@@ -163,9 +194,8 @@
             <p id="feedback" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Rating Saved!</p>
         </div>
 
-        <button onclick="window.open('https://wa.me/971500000000?text=I%20am%20interested%20in%20The%20Butterfly%20Voyage', '_blank')" 
-                class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
-            <span>Inquire (AED 15,000)</span>
+        <button id="btn-inquire" class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+            <span id="btn-text">Inquire</span>
         </button>
     </div>
   </div>
