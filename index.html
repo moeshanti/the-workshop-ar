@@ -46,7 +46,6 @@
   </script>
 
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://unpkg.com/aframe-particle-system-component@1.0.x/dist/aframe-particle-system-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
@@ -89,7 +88,7 @@
 
     let isCardOpen = false;
     let animationTimer = null;
-    let audioHasStarted = false;
+    let audioStarted = false;
 
     function updateUI() {
         document.getElementById('lbl-title').innerText = ARTWORK_DATA.title;
@@ -104,34 +103,29 @@
         btn.ontouchstart = () => window.open(url, '_blank');
     }
 
-    // --- WOW FACTOR LOGIC ---
-    function playAtmosphere() {
-        // Only try to play audio if we haven't already
-        if (!audioHasStarted) {
-            const bgm = document.getElementById('bgm');
-            bgm.volume = 0.5;
-            // Browsers block audio unless user interacted. 
-            // We hope the "Allow Camera" click counts, otherwise it plays on first screen tap.
-            bgm.play().then(() => {
-                audioHasStarted = true;
-                console.log("Audio Playing");
-            }).catch(e => console.log("Audio blocked until touch"));
-        }
+    // --- AUDIO & HAPTICS ---
+    function playSound() {
+        if(audioStarted) return;
+        const bgm = document.getElementById('bgm');
+        bgm.volume = 0.5;
+        bgm.play().then(() => {
+            audioStarted = true;
+        }).catch(() => {
+            // Audio blocked by browser policy until user interacts
+            console.log("Audio waiting for touch");
+        });
     }
 
     function triggerHaptic() {
-        // Vibration pulse (Android only usually, iOS ignores this API but it's good practice)
-        if (navigator.vibrate) {
-            navigator.vibrate(200); 
-        }
+        if(navigator.vibrate) navigator.vibrate(200);
     }
 
     function startExperience() {
         document.getElementById('scan-guide').classList.add('opacity-0');
         
-        // Trigger Senses
+        // Trigger Effects
         triggerHaptic();
-        playAtmosphere();
+        playSound();
 
         if(!isCardOpen) {
             animationTimer = setTimeout(() => {
@@ -148,6 +142,7 @@
         card.classList.add('translate-y-0');
     }
 
+    // --- ROBUST CLOSE FUNCTION ---
     function closeCard(e) {
         if(e) { e.preventDefault(); e.stopPropagation(); }
         isCardOpen = false;
@@ -158,9 +153,10 @@
     window.closeCard = closeCard;
 
     function screenTapped(e) {
-        // If audio was blocked, this tap will unlock it
-        playAtmosphere(); 
+        // Unlocks audio on first tap if it was blocked
+        playSound();
 
+        // Ignore if clicking close button
         if (e.target.closest('#btn-close') || e.target.closest('#info-card')) return;
 
         if(!isCardOpen && animationTimer) {
@@ -181,7 +177,7 @@
 </head>
 <body>
 
-  <audio id="bgm" loop preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_072041285e.mp3?filename=magic-spells-16345.mp3"></audio>
+  <audio id="bgm" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_072041285e.mp3?filename=magic-spells-16345.mp3" loop preload="auto"></audio>
 
   <a-scene 
     mindar-image="imageTargetSrc: ./assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01; uiScanning: no; uiLoading: no;" 
@@ -195,8 +191,6 @@
     <a-entity id="target" mindar-image-target="targetIndex: 0">
         <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5" animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
         <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01" animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
-        
-        <a-entity position="0 0 0" particle-system="preset: dust; particleCount: 300; color: #ffffff; opacity: 0.5; size: 0.5;"></a-entity>
     </a-entity>
   </a-scene>
 
