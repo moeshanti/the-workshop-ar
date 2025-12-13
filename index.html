@@ -27,11 +27,14 @@
     } catch(e) { console.error("Firebase Init Error", e); }
 
     window.submitRating = async (stars) => {
+      // 1. Visual Update
       for(let i=1; i<=5; i++) {
         const star = document.getElementById(`star-${i}`);
         if(i <= stars) star.classList.add('text-yellow-400');
         else star.classList.remove('text-yellow-400');
       }
+      
+      // 2. Database Save
       if(db) {
          try {
            await addDoc(collection(db, "ratings"), {
@@ -73,17 +76,13 @@
     }
     
     .interactive { pointer-events: auto !important; cursor: pointer; }
-    
-    /* 3. FADE ANIMATIONS */
-    .fade-out { opacity: 0; transition: opacity 0.5s ease-out; }
-    .fade-in { opacity: 1; transition: opacity 0.5s ease-in; }
   </style>
 
   <script>
     // --- CONFIGURATION ---
     const ARTWORK_DATA = {
         title: "The Butterfly Voyage",
-        artist: "Julian Doe",
+        artist: "Majd Kurdieh", // Updated Artist Name
         currency: "AED",
         price: "15,000",
         whatsappNumber: "971559522980",
@@ -124,9 +123,6 @@
         const card = document.getElementById('info-card');
         card.classList.remove('translate-y-full'); 
         card.classList.add('translate-y-0');
-        
-        // Hide the 3D text when card appears (optional cleanup)
-        document.getElementById('3d-text-group').setAttribute('visible', 'false');
     }
 
     function closeCard() {
@@ -135,8 +131,7 @@
         card.classList.add('translate-y-full');
         card.classList.remove('translate-y-0');
         
-        // Show 3D text again
-        document.getElementById('3d-text-group').setAttribute('visible', 'true');
+        // No longer looking for 3D text, so this won't crash!
     }
 
     // Tap Screen to Skip Delay
@@ -155,10 +150,6 @@
             startExperience(); 
         });
 
-        target.addEventListener("targetLost", () => {
-            // Optional: You could pause things here
-        });
-        
         // Listen for screen taps to skip delay
         document.body.addEventListener('click', screenTapped);
         document.body.addEventListener('touchstart', screenTapped);
@@ -178,11 +169,7 @@
         <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5" animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
         <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01" animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
         
-        <a-entity id="3d-text-group" position="0 -0.6 0">
-            <a-text value="The Butterfly Voyage" color="white" align="center" width="2" position="0 0.1 0"></a-text>
-            <a-text value="Julian Doe" color="#CCC" align="center" width="1.2" position="0 0 0"></a-text>
         </a-entity>
-    </a-entity>
   </a-scene>
 
   <div id="ui-layer" class="flex flex-col justify-between p-6 pb-10">
