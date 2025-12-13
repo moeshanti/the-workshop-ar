@@ -27,11 +27,14 @@
     } catch(e) { console.error("Firebase Init Error", e); }
 
     window.submitRating = async (stars) => {
+      // Visual Update
       for(let i=1; i<=5; i++) {
         const star = document.getElementById(`star-${i}`);
         if(i <= stars) star.classList.add('text-yellow-400');
         else star.classList.remove('text-yellow-400');
       }
+      
+      // Save to Database
       if(db) {
          try {
            await addDoc(collection(db, "ratings"), {
@@ -72,6 +75,7 @@
         z-index: 50; pointer-events: none; 
     }
     
+    /* CRITICAL: Ensures buttons catch clicks */
     .interactive { pointer-events: auto !important; cursor: pointer; }
   </style>
 
@@ -97,10 +101,8 @@
         const message = `Hi! I am interested in the painting "${ARTWORK_DATA.title}" by ${ARTWORK_DATA.artist} (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price}). Is it available?`;
         const url = `https://wa.me/${ARTWORK_DATA.whatsappNumber}?text=${encodeURIComponent(message)}`;
         
-        // Touchstart is safer for mobile buttons
-        const btn = document.getElementById('btn-inquire');
-        btn.ontouchstart = () => window.open(url, '_blank');
-        btn.onclick = () => window.open(url, '_blank'); // Fallback for desktop
+        // Simple onclick for maximum compatibility
+        document.getElementById('btn-inquire').onclick = () => window.open(url, '_blank');
     }
 
     function startExperience() {
@@ -120,14 +122,16 @@
         card.classList.add('translate-y-0');
     }
 
-    // FIXED CLOSE FUNCTION - EXPOSED GLOBALLY
-    window.closeCard = function(e) {
-        if(e) e.preventDefault(); // Stop any other event firing
+    // SIMPLE, ROBUST CLOSE FUNCTION
+    function closeCard() {
         isCardOpen = false;
         const card = document.getElementById('info-card');
         card.classList.add('translate-y-full');
         card.classList.remove('translate-y-0');
     }
+
+    // Make it global so HTML can see it
+    window.closeCard = closeCard;
 
     function screenTapped() {
         if(!isCardOpen && animationTimer) {
@@ -139,16 +143,10 @@
     document.addEventListener("DOMContentLoaded", () => {
         updateUI();
         const target = document.getElementById('target');
-        
         target.addEventListener("targetFound", () => { startExperience(); });
         
         document.body.addEventListener('click', screenTapped);
         document.body.addEventListener('touchstart', screenTapped);
-
-        // ATTACH CLOSE EVENT DIRECTLY
-        const closeBtn = document.getElementById('btn-close');
-        closeBtn.ontouchstart = window.closeCard;
-        closeBtn.onclick = window.closeCard;
     });
   </script>
 </head>
@@ -183,8 +181,8 @@
 
     <div id="info-card" class="interactive bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out">
         
-        <button id="btn-close" class="interactive absolute top-4 right-4 bg-white/10 w-12 h-12 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20 z-50 p-2">
-            <span class="text-xl pointer-events-none">✕</span>
+        <button onclick="closeCard()" class="interactive absolute top-2 right-2 z-50 p-4 opacity-80 hover:opacity-100">
+            <div class="bg-white/20 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold">✕</div>
         </button>
 
         <div class="mb-4">
