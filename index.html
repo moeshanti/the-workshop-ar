@@ -11,7 +11,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // --- CONFIGURATION ---
     const firebaseConfig = {
       apiKey: "AIzaSyCg7B8tiS2_Kn_Ktl07SqA7NKBc_O7Rb3U",
       authDomain: "the-workshop-ar.firebaseapp.com",
@@ -28,18 +27,15 @@
     } catch(e) { console.error("Firebase Init Error", e); }
 
     window.submitRating = async (stars) => {
-      // Visual Update
       for(let i=1; i<=5; i++) {
         const star = document.getElementById(`star-${i}`);
         if(i <= stars) star.classList.add('text-yellow-400');
         else star.classList.remove('text-yellow-400');
       }
-      
-      // Save to Database
       if(db) {
          try {
            await addDoc(collection(db, "ratings"), {
-             painting: "The Butterfly Voyage", // We could also make this dynamic!
+             painting: "The Butterfly Voyage",
              stars: stars,
              timestamp: serverTimestamp()
            });
@@ -56,91 +52,116 @@
     /* 1. RESET & TRANSPARENCY */
     html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
 
-    /* 2. THE VIDEO LAYER (BACKGROUND) */
+    /* 2. LAYERS */
     video {
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
+        position: absolute !important; top: 50% !important; left: 50% !important;
         transform: translate(-50%, -50%) !important;
-        min-width: 100vw !important;
-        min-height: 100vh !important;
-        width: auto !important;
-        height: auto !important;
-        object-fit: cover !important;
-        z-index: -10 !important;
+        min-width: 100vw !important; min-height: 100vh !important;
+        width: auto !important; height: auto !important;
+        object-fit: cover !important; z-index: -10 !important;
     }
 
-    /* 3. THE AR CANVAS (MODELS) */
     .a-canvas {
-        width: 100% !important;
-        height: 100% !important;
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        z-index: 1 !important;
-        background: transparent !important;
+        width: 100% !important; height: 100% !important;
+        position: absolute !important; top: 0 !important; left: 0 !important;
+        z-index: 1 !important; background: transparent !important;
     }
 
-    /* 4. THE UI LAYER (BUTTONS) */
     #ui-layer {
-        position: fixed; top: 0; left: 0; 
-        width: 100%; height: 100%; 
-        z-index: 50; 
-        pointer-events: none; 
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        z-index: 50; pointer-events: none; 
     }
     
     .interactive { pointer-events: auto !important; cursor: pointer; }
+    
+    /* 3. FADE ANIMATIONS */
+    .fade-out { opacity: 0; transition: opacity 0.5s ease-out; }
+    .fade-in { opacity: 1; transition: opacity 0.5s ease-in; }
   </style>
 
   <script>
-    // --- SINGLE SOURCE OF TRUTH ---
-    // Change details here, and the whole app updates automatically.
+    // --- CONFIGURATION ---
     const ARTWORK_DATA = {
         title: "The Butterfly Voyage",
         artist: "Julian Doe",
         currency: "AED",
         price: "15,000",
-        whatsappNumber: "971559522980"
+        whatsappNumber: "971559522980",
+        animationDuration: 8000 // 8 Seconds Delay
     };
 
+    let isCardOpen = false;
+    let animationTimer = null;
+
     function updateUI() {
-        // 1. Fill Text on Screen
         document.getElementById('lbl-title').innerText = ARTWORK_DATA.title;
         document.getElementById('lbl-artist').innerText = ARTWORK_DATA.artist;
         document.getElementById('btn-text').innerText = `Inquire (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price})`;
 
-        // 2. Build Dynamic WhatsApp Link
         const message = `Hi! I am interested in the painting "${ARTWORK_DATA.title}" by ${ARTWORK_DATA.artist} (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price}). Is it available?`;
         const url = `https://wa.me/${ARTWORK_DATA.whatsappNumber}?text=${encodeURIComponent(message)}`;
-        
-        // 3. Attach to Button
         document.getElementById('btn-inquire').onclick = () => window.open(url, '_blank');
     }
 
+    // "CINEMATIC" LOGIC
+    function startExperience() {
+        // 1. Hide Scanner Guide Immediately
+        document.getElementById('scan-guide').classList.add('opacity-0');
+        
+        // 2. Wait for Animation, then show card
+        if(!isCardOpen) {
+            console.log(`Starting Cinematic Timer: ${ARTWORK_DATA.animationDuration}ms`);
+            animationTimer = setTimeout(() => {
+                openCard();
+            }, ARTWORK_DATA.animationDuration);
+        }
+    }
+
     function openCard() {
+        if(isCardOpen) return;
+        isCardOpen = true;
+        
         const card = document.getElementById('info-card');
-        const guide = document.getElementById('scan-guide');
         card.classList.remove('translate-y-full'); 
         card.classList.add('translate-y-0');
-        guide.classList.add('opacity-0');
+        
+        // Hide the 3D text when card appears (optional cleanup)
+        document.getElementById('3d-text-group').setAttribute('visible', 'false');
     }
 
     function closeCard() {
+        isCardOpen = false;
         const card = document.getElementById('info-card');
-        const guide = document.getElementById('scan-guide');
         card.classList.add('translate-y-full');
         card.classList.remove('translate-y-0');
-        guide.classList.remove('opacity-0');
+        
+        // Show 3D text again
+        document.getElementById('3d-text-group').setAttribute('visible', 'true');
+    }
+
+    // Tap Screen to Skip Delay
+    function screenTapped() {
+        if(!isCardOpen && animationTimer) {
+            clearTimeout(animationTimer);
+            openCard(); // Skip delay
+        }
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-        // Initialize Data
         updateUI();
-
         const target = document.getElementById('target');
+        
         target.addEventListener("targetFound", () => {
-            openCard(); 
+            startExperience(); 
         });
+
+        target.addEventListener("targetLost", () => {
+            // Optional: You could pause things here
+        });
+        
+        // Listen for screen taps to skip delay
+        document.body.addEventListener('click', screenTapped);
+        document.body.addEventListener('touchstart', screenTapped);
     });
   </script>
 </head>
@@ -156,6 +177,11 @@
     <a-entity id="target" mindar-image-target="targetIndex: 0">
         <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5" animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
         <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01" animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
+        
+        <a-entity id="3d-text-group" position="0 -0.6 0">
+            <a-text value="The Butterfly Voyage" color="white" align="center" width="2" position="0 0.1 0"></a-text>
+            <a-text value="Julian Doe" color="#CCC" align="center" width="1.2" position="0 0 0"></a-text>
+        </a-entity>
     </a-entity>
   </a-scene>
 
@@ -163,9 +189,6 @@
     
     <div class="flex justify-between items-start w-full">
         <h1 class="text-white font-bold tracking-widest text-lg uppercase drop-shadow-md">The Workshop</h1>
-        <button onclick="openCard()" class="interactive bg-blue-600/50 text-white text-[10px] font-bold px-3 py-1 rounded-full backdrop-blur-md">
-            TEST UI
-        </button>
     </div>
 
     <div id="scan-guide" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-500">
@@ -179,8 +202,8 @@
         <button onclick="closeCard()" class="absolute top-4 right-4 bg-white/10 w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:bg-white/20">✕</button>
 
         <div class="mb-4">
-           <h2 id="lbl-title" class="text-2xl font-light mb-1">Loading...</h2>
-           <p id="lbl-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">Loading...</p>
+           <h2 id="lbl-title" class="text-2xl font-light mb-1">...</h2>
+           <p id="lbl-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">...</p>
         </div>
 
         <div class="flex flex-col items-center mb-6">
