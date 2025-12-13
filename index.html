@@ -49,10 +49,25 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    /* 1. RESET & TRANSPARENCY */
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
+    /* 1. RESET */
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: black; }
 
-    /* 2. LAYERS */
+    /* 2. SPLASH SCREEN (New) */
+    #splash-screen {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: black; z-index: 9999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: opacity 1s ease-out;
+    }
+
+    /* 3. VISUAL FLASH (Fake Haptic) */
+    #flash-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: white; pointer-events: none; opacity: 0; z-index: 100;
+        transition: opacity 0.2s ease-out;
+    }
+
+    /* 4. LAYERS */
     video {
         position: absolute !important; top: 50% !important; left: 50% !important;
         transform: translate(-50%, -50%) !important;
@@ -88,7 +103,38 @@
 
     let isCardOpen = false;
     let animationTimer = null;
-    let audioStarted = false;
+    let audioContextUnlocked = false;
+
+    // --- AUDIO SYSTEM ---
+    function initAudio() {
+        const bgm = document.getElementById('bgm');
+        bgm.volume = 0.5;
+        // Playing silence or pausing immediately unlocks the audio engine on iOS
+        bgm.play().then(() => {
+            bgm.pause();
+            bgm.currentTime = 0;
+            audioContextUnlocked = true;
+            console.log("Audio Unlocked!");
+        }).catch(e => console.error("Audio unlock failed", e));
+    }
+
+    function playSound() {
+        if(audioContextUnlocked) {
+            const bgm = document.getElementById('bgm');
+            bgm.play();
+        }
+    }
+
+    // --- SPLASH SCREEN LOGIC ---
+    function enterExperience() {
+        // 1. Unlock Audio
+        initAudio();
+
+        // 2. Hide Splash
+        const splash = document.getElementById('splash-screen');
+        splash.style.opacity = '0';
+        setTimeout(() => { splash.style.display = 'none'; }, 1000);
+    }
 
     function updateUI() {
         document.getElementById('lbl-title').innerText = ARTWORK_DATA.title;
@@ -103,29 +149,19 @@
         btn.ontouchstart = () => window.open(url, '_blank');
     }
 
-    // --- AUDIO & HAPTICS ---
-    function playSound() {
-        if(audioStarted) return;
-        const bgm = document.getElementById('bgm');
-        bgm.volume = 0.5;
-        bgm.play().then(() => {
-            audioStarted = true;
-        }).catch(() => {
-            // Audio blocked by browser policy until user interacts
-            console.log("Audio waiting for touch");
-        });
-    }
-
-    function triggerHaptic() {
-        if(navigator.vibrate) navigator.vibrate(200);
+    function triggerVisualHaptic() {
+        // Flash the screen white briefly
+        const flash = document.getElementById('flash-overlay');
+        flash.style.opacity = '0.6';
+        setTimeout(() => { flash.style.opacity = '0'; }, 200);
     }
 
     function startExperience() {
         document.getElementById('scan-guide').classList.add('opacity-0');
         
         // Trigger Effects
-        triggerHaptic();
-        playSound();
+        triggerVisualHaptic(); // Visual pulse
+        playSound();           // Audio starts
 
         if(!isCardOpen) {
             animationTimer = setTimeout(() => {
@@ -142,7 +178,6 @@
         card.classList.add('translate-y-0');
     }
 
-    // --- ROBUST CLOSE FUNCTION ---
     function closeCard(e) {
         if(e) { e.preventDefault(); e.stopPropagation(); }
         isCardOpen = false;
@@ -153,10 +188,6 @@
     window.closeCard = closeCard;
 
     function screenTapped(e) {
-        // Unlocks audio on first tap if it was blocked
-        playSound();
-
-        // Ignore if clicking close button
         if (e.target.closest('#btn-close') || e.target.closest('#info-card')) return;
 
         if(!isCardOpen && animationTimer) {
@@ -178,6 +209,15 @@
 <body>
 
   <audio id="bgm" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_072041285e.mp3?filename=magic-spells-16345.mp3" loop preload="auto"></audio>
+
+  <div id="splash-screen">
+      <h1 class="text-white font-bold tracking-[0.5em] text-2xl uppercase mb-8">The Workshop</h1>
+      <button onclick="enterExperience()" class="border border-white text-white px-8 py-3 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition">
+          ENTER EXPERIENCE
+      </button>
+  </div>
+
+  <div id="flash-overlay"></div>
 
   <a-scene 
     mindar-image="imageTargetSrc: ./assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01; uiScanning: no; uiLoading: no;" 
