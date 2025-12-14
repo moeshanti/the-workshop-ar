@@ -89,14 +89,14 @@
 
     .interactive { pointer-events: auto !important; cursor: pointer; }
 
-    /* 5. ANIMATIONS (NEW) */
+    /* 5. ANIMATIONS */
     @keyframes fadeInUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     
     .animate-fade-up {
-        opacity: 0; /* Hidden by default */
+        opacity: 0; 
         animation: fadeInUp 0.6s ease-out forwards;
     }
     
@@ -203,9 +203,21 @@
         const modal = document.getElementById('video-modal');
         const video = document.getElementById('story-video');
         const endScreen = document.getElementById('video-end-screen');
+        const mainBtn = document.getElementById('btn-main-action');
         
+        // DYNAMIC BUTTON LOGIC
+        if (isStoryMode) {
+            // Cold Lead: Wants to visit
+            mainBtn.innerText = "✨ EXPERIENCE THE MAGIC";
+            mainBtn.onclick = goToVisit;
+        } else {
+            // Warm Lead: Wants to return to AR
+            mainBtn.innerText = "✨ RETURN TO MAGIC";
+            mainBtn.onclick = closeStory;
+        }
+
         // Reset state
-        endScreen.classList.add('hidden'); // Hide buttons initially
+        endScreen.classList.add('hidden'); 
         endScreen.classList.remove('flex');
         
         modal.style.display = 'flex';
@@ -213,7 +225,6 @@
         video.play();
         video.muted = false; 
 
-        // Trigger animations when video ends
         video.onended = () => {
             endScreen.classList.remove('hidden');
             endScreen.classList.add('flex');
@@ -224,7 +235,6 @@
         const video = document.getElementById('story-video');
         const endScreen = document.getElementById('video-end-screen');
         
-        // Hide buttons instantly
         endScreen.classList.add('hidden');
         endScreen.classList.remove('flex');
         
@@ -304,8 +314,8 @@
       
       <div id="video-end-screen" class="hidden absolute inset-0 flex-col items-center justify-center bg-black/80 w-full h-full gap-4 z-40">
           
-          <button onclick="goToVisit()" class="bg-white text-black px-8 py-4 rounded-full font-bold tracking-widest interactive active:scale-95 mb-4 shadow-xl animate-fade-up delay-100">
-              ✨ EXPERIENCE THE MAGIC
+          <button id="btn-main-action" class="bg-white text-black px-8 py-4 rounded-full font-bold tracking-widest interactive active:scale-95 mb-4 shadow-xl animate-fade-up delay-100">
+              ...
           </button>
 
           <button onclick="shareApp()" class="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-full font-bold tracking-widest interactive active:scale-95 animate-fade-up delay-300">
