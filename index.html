@@ -20,28 +20,12 @@
         height: 100%;
         overflow: hidden;
         font-family: 'Montserrat', sans-serif;
-        background-color: transparent !important; /* Critical for video visibility */
-      }
-
-      /* FIX 1: THE SAFETY FLOOR (Prevents White Flash) */
-      #deep-bg {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
         background-color: black;
-        z-index: -999;
-        pointer-events: none;
       }
 
-      /* FIX 2: FORCE AR UI TO BE VISIBLE (The Missing Square Fix) */
-      .mindar-ui-overlay {
-        z-index: 2147483647 !important; /* Max Z-Index */
-        display: block !important;
-      }
-      .mindar-ui-scanning {
-        display: block !important; /* Force Scanning Square */
+      /* FIX: SUPPRESS THE "FAILED TO LAUNCH" SCREEN */
+      .mindar-ui-error {
+        display: none !important;
       }
 
       /* --- SPLASH SCREEN --- */
@@ -52,16 +36,15 @@
         width: 100%;
         height: 100%;
         background-color: black;
-        z-index: 99999; 
+        z-index: 99999; /* Highest priority */
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         text-align: center;
-        transition: opacity 0.8s ease-out;
+        transition: opacity 0.5s ease-out;
       }
 
-      /* Branding */
       .brand-top {
         position: absolute;
         top: 60px;
@@ -74,7 +57,6 @@
         padding-bottom: 15px;
       }
 
-      /* Title */
       h1 {
         color: white; 
         font-weight: 300; 
@@ -85,7 +67,6 @@
         text-transform: uppercase;
       }
 
-      /* Subtitle */
       .subtitle {
         color: #aaaaaa;
         font-size: 13px;
@@ -95,7 +76,6 @@
         text-transform: uppercase;
       }
 
-      /* Button */
       #start-button {
         padding: 20px 50px;
         font-size: 15px;
@@ -135,18 +115,21 @@
         100% { transform: rotate(360deg); }
       }
 
-      /* --- VIDEO --- */
+      /* --- AR & VIDEO --- */
       video {
         display: block !important;
       }
       .a-canvas {
         background-color: transparent !important;
       }
+      
+      /* Force Scanning UI on Top when active */
+      .mindar-ui-overlay {
+        z-index: 10000;
+      }
     </style>
   </head>
   <body>
-
-    <div id="deep-bg"></div>
 
     <div id="splash-screen">
       <div class="brand-top">THE WORKSHOP</div>
@@ -163,14 +146,14 @@
     </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: yes;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: no;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights, alpha: true" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <video id="painting-video" src="./your-video.mp4" loop="true" crossorigin="anonymous"></video>
+        <video id="painting-video" src="./your-video.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -196,8 +179,7 @@
         const video = document.getElementById('painting-video');
         const target = document.querySelector('[mindar-image-target]');
         
-        // Flag to prevent double firing
-        let appStarted = false;
+        let hasClicked = false;
 
         // 1. Reveal Button
         setTimeout(() => {
@@ -206,43 +188,43 @@
 
         // 2. Click Handler
         startButton.addEventListener('click', () => {
-          if (appStarted) return;
-          appStarted = true;
+          if (hasClicked) return;
+          hasClicked = true;
 
-          // Update UI
+          // UI Updates
           startButton.style.display = 'none';
           spinner.style.display = 'block';
           statusMsg.style.opacity = '1';
 
-          // Start AR
+          // Start MindAR
           sceneEl.systems['mindar-image-system'].start();
-
-          // FAILSAFE: If AR doesn't load in 6 seconds, force entry
-          setTimeout(() => {
-            console.log("Failsafe triggered.");
-            hideSplash();
-          }, 6000);
         });
 
-        // 3. Wait for AR Ready (Standard Entry)
+        // 3. AR Ready Listener
+        // When camera is ready, we clear the splash screen
         sceneEl.addEventListener("arReady", (event) => {
-           console.log("AR Ready. Entering...");
-           hideSplash();
-        });
+           console.log("AR Ready. Clearing Splash.");
+           
+           // Fade out splash
+           splashScreen.style.opacity = '0';
 
-        // Helper to Hide Splash
-        function hideSplash() {
-          splashScreen.style.opacity = '0';
-          setTimeout(() => {
-            splashScreen.style.display = 'none';
-          }, 800);
-        }
+           // Make Background Transparent
+           document.body.style.backgroundColor = 'transparent';
+           document.documentElement.style.backgroundColor = 'transparent';
+
+           // Remove Splash from DOM
+           setTimeout(() => {
+             splashScreen.style.display = 'none';
+           }, 500);
+        });
 
         // 4. Video Control
         target.addEventListener("targetFound", event => {
+          console.log("Target Found");
           if(video) video.play();
         });
         target.addEventListener("targetLost", event => {
+          console.log("Target Lost");
           if(video) video.pause();
         });
       });
