@@ -98,7 +98,8 @@
         price: "15,000",
         whatsappNumber: "971559522980",
         animationDuration: 8000,
-        catalogUrl: "https://privateviews.artlogic.net/fannaporter/b6c586b47457fbeaa95a60?inc_prices=1&s=c57d462e0fec509dfb6cc8248109815a95adfffd0b5566b75ad8462e166e31b17894da30585cb2eaf1b96b0c473bd33342dda34739d6f472ee80c9966b41a6fe"
+        catalogUrl: "https://privateviews.artlogic.net/fannaporter/b6c586b47457fbeaa95a60?inc_prices=1&s=c57d462e0fec509dfb6cc8248109815a95adfffd0b5566b75ad8462e166e31b17894da30585cb2eaf1b96b0c473bd33342dda34739d6f472ee80c9966b41a6fe",
+        websiteUrl: "https://www.theworkshopdubai.com/"
     };
 
     let isCardOpen = false;
@@ -132,7 +133,7 @@
 
     // --- SHARED ENTRY (Direct to Video) ---
     function enterStoryMode() {
-        // FIX: Hide the scanner guide IMMEDIATELY so it doesn't flash during fade out
+        // HIDE SCANNER UI IMMEDIATELY
         document.getElementById('scan-guide').style.display = 'none';
 
         const splash = document.getElementById('splash-screen');
@@ -207,9 +208,13 @@
         }
     }
     
-    // --- CATALOG LOGIC ---
+    // --- CATALOG & WEBSITE LOGIC ---
     function openCatalog() {
         window.open(ARTWORK_DATA.catalogUrl, '_blank');
+    }
+    
+    function openWebsite() {
+        window.open(ARTWORK_DATA.websiteUrl, '_blank');
     }
 
     async function shareApp() {
@@ -279,10 +284,15 @@
       <h2 class="text-white text-2xl font-light mb-4 text-center px-4">Experience the Magic</h2>
       <p class="text-white/60 text-center px-8 mb-8">Visit The Workshop to see "The Butterfly Voyage" come to life in Augmented Reality.</p>
       
-      <button onclick="window.location.href = window.location.href.split('?')[0]" class="border border-white text-white px-8 py-3 rounded-full mb-4 hover:bg-white hover:text-black transition interactive">
+      <button onclick="window.location.href = window.location.href.split('?')[0]" class="border border-white text-white px-8 py-3 rounded-full mb-4 hover:bg-white hover:text-black transition interactive font-bold tracking-widest text-sm">
           TRY SCANNER
       </button>
-      <p class="text-white/30 text-xs mt-4">Located in Al Wasl Road, Dubai</p>
+      
+      <button onclick="openWebsite()" class="text-white/50 text-xs mt-2 underline tracking-widest hover:text-white interactive">
+          VISIT THE WORKSHOP DUBAI
+      </button>
+      
+      <p class="text-white/30 text-[10px] mt-8 uppercase tracking-widest">Al Wasl Road, Jumeirah 2, Dubai</p>
   </div>
 
   <a-scene 
