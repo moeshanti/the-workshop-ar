@@ -20,13 +20,10 @@
         height: 100%;
         overflow: hidden;
         font-family: 'Montserrat', sans-serif;
-        background-color: transparent !important; /* Transparent to let layers work */
+        background-color: transparent !important; /* Critical for video visibility */
       }
 
-      /* FIX 1: THE SAFETY FLOOR 
-         This sits behind everything. It guarantees NO WHITE FLASH ever.
-         Even if the camera is slow, the user sees this black div.
-      */
+      /* FIX 1: THE SAFETY FLOOR (Prevents White Flash) */
       #deep-bg {
         position: fixed;
         top: 0;
@@ -35,6 +32,16 @@
         height: 100%;
         background-color: black;
         z-index: -999;
+        pointer-events: none;
+      }
+
+      /* FIX 2: FORCE AR UI TO BE VISIBLE (The Missing Square Fix) */
+      .mindar-ui-overlay {
+        z-index: 2147483647 !important; /* Max Z-Index */
+        display: block !important;
+      }
+      .mindar-ui-scanning {
+        display: block !important; /* Force Scanning Square */
       }
 
       /* --- SPLASH SCREEN --- */
@@ -111,7 +118,7 @@
         transform: translateY(0);
       }
 
-      /* Spinner (Transition only) */
+      /* Spinner */
       .custom-loader {
         display: none; 
         border: 4px solid rgba(255, 255, 255, 0.1);
@@ -128,14 +135,10 @@
         100% { transform: rotate(360deg); }
       }
 
-      /* --- AR & VIDEO --- */
+      /* --- VIDEO --- */
       video {
-        /* MindAR sets z-index: -2. 
-           This puts it IN FRONT of our #deep-bg (-999) 
-           but BEHIND the AR content. Perfect. */
         display: block !important;
       }
-      
       .a-canvas {
         background-color: transparent !important;
       }
@@ -156,6 +159,7 @@
       <button id="start-button">ENTER THE EXPERIENCE</button>
       
       <div id="loading-spinner" class="custom-loader"></div>
+      <p id="status-msg" style="color:#666; font-size:10px; margin-top:15px; opacity:0; transition:opacity 0.5s">Initializing Camera...</p>
     </div>
 
     <a-scene 
@@ -187,9 +191,13 @@
         const startButton = document.getElementById('start-button');
         const splashScreen = document.getElementById('splash-screen');
         const spinner = document.getElementById('loading-spinner');
+        const statusMsg = document.getElementById('status-msg');
         const sceneEl = document.querySelector('a-scene');
         const video = document.getElementById('painting-video');
         const target = document.querySelector('[mindar-image-target]');
+        
+        // Flag to prevent double firing
+        let appStarted = false;
 
         // 1. Reveal Button
         setTimeout(() => {
@@ -198,32 +206,43 @@
 
         // 2. Click Handler
         startButton.addEventListener('click', () => {
-          // A. Update UI: Show spinner briefly to acknowledge click
+          if (appStarted) return;
+          appStarted = true;
+
+          // Update UI
           startButton.style.display = 'none';
           spinner.style.display = 'block';
+          statusMsg.style.opacity = '1';
 
-          // B. Start AR Engine
+          // Start AR
           sceneEl.systems['mindar-image-system'].start();
 
-          // C. IMMEDIATE FADE OUT
-          // We do not wait for permission. We fade the splash now.
-          // Because of #deep-bg, the user will see a BLACK screen, not white.
-          // Then the "Allow Camera" prompt will appear over the black screen.
+          // FAILSAFE: If AR doesn't load in 6 seconds, force entry
           setTimeout(() => {
-             splashScreen.style.opacity = '0';
-             setTimeout(() => {
-               splashScreen.style.display = 'none';
-             }, 800);
-          }, 500); // 0.5s delay just to show the spinner briefly
+            console.log("Failsafe triggered.");
+            hideSplash();
+          }, 6000);
         });
 
-        // 3. Video Control
+        // 3. Wait for AR Ready (Standard Entry)
+        sceneEl.addEventListener("arReady", (event) => {
+           console.log("AR Ready. Entering...");
+           hideSplash();
+        });
+
+        // Helper to Hide Splash
+        function hideSplash() {
+          splashScreen.style.opacity = '0';
+          setTimeout(() => {
+            splashScreen.style.display = 'none';
+          }, 800);
+        }
+
+        // 4. Video Control
         target.addEventListener("targetFound", event => {
-          console.log("Target Found");
           if(video) video.play();
         });
         target.addEventListener("targetLost", event => {
-          console.log("Target Lost");
           if(video) video.pause();
         });
       });
