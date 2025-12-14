@@ -13,17 +13,15 @@
 
     <style>
       /* --- CORE LAYOUT --- */
-      html, body {
+      body {
         margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
         overflow: hidden;
         font-family: 'Montserrat', sans-serif;
-        background-color: black; /* Start Black */
+        background-color: black; 
       }
 
-      /* --- SPLASH SCREEN (UI LAYER) --- */
+      /* --- SPLASH SCREEN --- */
+      /* This sits on top of everything until we click */
       #splash-screen {
         position: fixed;
         top: 0;
@@ -31,7 +29,7 @@
         width: 100%;
         height: 100%;
         background-color: black;
-        z-index: 99999; 
+        z-index: 999999; 
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -81,27 +79,23 @@
         border: none;
         border-radius: 50px;
         cursor: pointer;
-        opacity: 0; 
-        transform: translateY(20px);
-        transition: all 1s ease;
+        margin-top: 20px;
         box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
       }
-
-      #start-button.visible {
-        opacity: 1;
-        transform: translateY(0);
+      
+      #start-button:active {
+        transform: scale(0.95);
       }
 
-      /* --- RESTORING AR VISIBILITY --- */
-      /* We enable the default MindAR UI so you can see the Scanning Brackets */
-      .mindar-ui-overlay {
-        display: block !important;
-        z-index: 10000;
+      /* --- AR UI OVERRIDES --- */
+      /* 1. Hide the error screen brutally */
+      .mindar-ui-error {
+        display: none !important;
       }
       
-      /* Ensure Video works on iOS */
-      video {
-        display: block !important;
+      /* 2. Ensure Scanning UI is visible */
+      .mindar-ui-overlay {
+        z-index: 10000 !important;
       }
     </style>
   </head>
@@ -116,11 +110,10 @@
       </div>
 
       <button id="start-button">ENTER THE EXPERIENCE</button>
-      <p id="loading-text" style="color: #666; font-size: 10px; margin-top: 15px; display: none;">Starting Camera...</p>
     </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiScanning: yes; uiError: no;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -144,46 +137,32 @@
     </a-scene>
 
     <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        const startButton = document.getElementById('start-button');
-        const splashScreen = document.getElementById('splash-screen');
-        const sceneEl = document.querySelector('a-scene');
-        const video = document.getElementById('painting-video');
-        const target = document.querySelector('[mindar-image-target]');
-        const loadingText = document.getElementById('loading-text');
+      const startButton = document.getElementById('start-button');
+      const splashScreen = document.getElementById('splash-screen');
+      const sceneEl = document.querySelector('a-scene');
+      const video = document.getElementById('painting-video');
+      const target = document.querySelector('[mindar-image-target]');
 
-        // 1. Reveal Button
-        setTimeout(() => {
-          startButton.classList.add('visible');
-        }, 2000);
+      // THE "INSTANT SWAP" LOGIC
+      startButton.addEventListener('click', () => {
+        // 1. DELETE Splash Screen immediately. 
+        // We do not fade. We clear the DOM so MindAR has 0 interference.
+        splashScreen.style.display = 'none';
 
-        // 2. Click Handler
-        startButton.addEventListener('click', () => {
-          // UI Feedback
-          startButton.style.display = 'none';
-          loadingText.style.display = 'block';
+        // 2. Start the AR Engine
+        // This will trigger the browser's "Allow Camera" prompt naturally.
+        sceneEl.systems['mindar-image-system'].start();
+      });
 
-          // START AR
-          sceneEl.systems['mindar-image-system'].start();
-          
-          // IMMEDIATE REMOVAL OF SPLASH
-          // We don't wait. We clear the screen so MindAR can take over.
-          setTimeout(() => {
-            splashScreen.style.display = 'none';
-            // Make body transparent to allow video see-through
-            document.body.style.backgroundColor = 'transparent';
-          }, 500);
-        });
+      // Video Control
+      target.addEventListener("targetFound", event => {
+        console.log("Target Found");
+        video.play();
+      });
 
-        // 3. Video Control
-        target.addEventListener("targetFound", event => {
-          console.log("Target Found");
-          if(video) video.play();
-        });
-        target.addEventListener("targetLost", event => {
-          console.log("Target Lost");
-          if(video) video.pause();
-        });
+      target.addEventListener("targetLost", event => {
+        console.log("Target Lost");
+        video.pause();
       });
     </script>
   </body>
