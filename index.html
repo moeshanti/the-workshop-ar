@@ -88,6 +88,22 @@
     }
 
     .interactive { pointer-events: auto !important; cursor: pointer; }
+
+    /* 5. ANIMATIONS (NEW) */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fade-up {
+        opacity: 0; /* Hidden by default */
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+    
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-300 { animation-delay: 0.3s; }
+    .delay-500 { animation-delay: 0.5s; }
+
   </style>
 
   <script>
@@ -112,7 +128,6 @@
         if (urlParams.get('view') === 'story') {
             isStoryMode = true;
             console.log("Story Mode Active: Disabling AR");
-            
             const scene = document.querySelector('a-scene');
             if(scene) scene.remove();
 
@@ -190,15 +205,17 @@
         const endScreen = document.getElementById('video-end-screen');
         
         // Reset state
-        endScreen.classList.add('hidden'); // Hide buttons
+        endScreen.classList.add('hidden'); // Hide buttons initially
+        endScreen.classList.remove('flex');
+        
         modal.style.display = 'flex';
         video.currentTime = 0;
         video.play();
         video.muted = false; 
 
-        // Listen for end of video
+        // Trigger animations when video ends
         video.onended = () => {
-            endScreen.classList.remove('hidden'); // Show buttons with animation
+            endScreen.classList.remove('hidden');
             endScreen.classList.add('flex');
         };
     }
@@ -207,6 +224,7 @@
         const video = document.getElementById('story-video');
         const endScreen = document.getElementById('video-end-screen');
         
+        // Hide buttons instantly
         endScreen.classList.add('hidden');
         endScreen.classList.remove('flex');
         
@@ -219,8 +237,6 @@
         const video = document.getElementById('story-video');
         video.pause();
         modal.style.display = 'none';
-        
-        // Show Visit CTA
         document.getElementById('visit-cta').style.display = 'flex';
     }
 
@@ -230,7 +246,6 @@
         video.pause();
         modal.style.display = 'none';
         
-        // If in story mode, closing sends them to Visit CTA
         if(isStoryMode) {
             document.getElementById('visit-cta').style.display = 'flex';
         }
@@ -287,17 +302,17 @@
       
       <video id="story-video" src="./assets/story.mp4" class="w-full max-w-md rounded-lg shadow-2xl" playsinline></video>
       
-      <div id="video-end-screen" class="hidden absolute inset-0 flex-col items-center justify-center bg-black/80 w-full h-full transition-opacity duration-500 gap-4 z-40">
+      <div id="video-end-screen" class="hidden absolute inset-0 flex-col items-center justify-center bg-black/80 w-full h-full gap-4 z-40">
           
-          <button onclick="goToVisit()" class="bg-white text-black px-8 py-4 rounded-full font-bold tracking-widest interactive active:scale-95 mb-4 shadow-xl">
+          <button onclick="goToVisit()" class="bg-white text-black px-8 py-4 rounded-full font-bold tracking-widest interactive active:scale-95 mb-4 shadow-xl animate-fade-up delay-100">
               ✨ EXPERIENCE THE MAGIC
           </button>
 
-          <button onclick="shareApp()" class="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-full font-bold tracking-widest interactive active:scale-95">
+          <button onclick="shareApp()" class="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-full font-bold tracking-widest interactive active:scale-95 animate-fade-up delay-300">
               <span>SHARE STORY</span>
           </button>
 
-          <button onclick="replayStory()" class="text-white/70 hover:text-white mt-4 flex items-center gap-2 interactive">
+          <button onclick="replayStory()" class="text-white/70 hover:text-white mt-4 flex items-center gap-2 interactive animate-fade-up delay-500">
               <span class="text-2xl">↺</span> Watch Again
           </button>
       </div>
