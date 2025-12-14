@@ -98,7 +98,6 @@
         price: "15,000",
         whatsappNumber: "971559522980",
         animationDuration: 8000,
-        // NEW: Catalog URL
         catalogUrl: "https://privateviews.artlogic.net/fannaporter/b6c586b47457fbeaa95a60?inc_prices=1&s=c57d462e0fec509dfb6cc8248109815a95adfffd0b5566b75ad8462e166e31b17894da30585cb2eaf1b96b0c473bd33342dda34739d6f472ee80c9966b41a6fe"
     };
 
@@ -133,6 +132,9 @@
 
     // --- SHARED ENTRY (Direct to Video) ---
     function enterStoryMode() {
+        // FIX: Hide the scanner guide IMMEDIATELY so it doesn't flash during fade out
+        document.getElementById('scan-guide').style.display = 'none';
+
         const splash = document.getElementById('splash-screen');
         splash.style.opacity = '0';
         setTimeout(() => { 
@@ -205,7 +207,7 @@
         }
     }
     
-    // --- NEW: CATALOG LOGIC ---
+    // --- CATALOG LOGIC ---
     function openCatalog() {
         window.open(ARTWORK_DATA.catalogUrl, '_blank');
     }
