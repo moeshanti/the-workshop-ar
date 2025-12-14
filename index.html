@@ -6,7 +6,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -19,11 +19,11 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        font-family: 'Montserrat', sans-serif; /* Modern Font */
-        background-color: black; /* Prevents white flash */
+        font-family: 'Montserrat', sans-serif;
+        background-color: black;
       }
 
-      /* --- SPLASH SCREEN (Modern & Sleek) --- */
+      /* --- SPLASH SCREEN --- */
       #splash-screen {
         position: fixed;
         top: 0;
@@ -31,52 +31,55 @@
         width: 100%;
         height: 100%;
         background-color: black;
-        z-index: 99999;
+        z-index: 99999; /* Always on top */
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         text-align: center;
-        transition: opacity 0.8s ease-out; /* Clean fade */
+        transition: opacity 1s ease-out;
       }
 
-      /* Branding Top */
+      /* Prominent Branding */
       .brand-top {
         position: absolute;
-        top: 40px;
+        top: 50px;
         color: white;
-        font-size: 12px;
-        letter-spacing: 4px;
-        font-weight: 600;
+        font-size: 16px; 
+        letter-spacing: 6px; 
+        font-weight: 700; 
         text-transform: uppercase;
-        opacity: 0.7;
+        border-bottom: 1px solid rgba(255,255,255,0.3);
+        padding-bottom: 10px;
+        width: 60%;
       }
 
-      /* Main Title */
+      /* Title */
       h1 {
         color: white; 
-        font-weight: 300; /* Light, elegant weight */
+        font-weight: 300; 
         letter-spacing: 2px;
-        font-size: 28px;
-        margin-bottom: 5px;
+        font-size: 26px;
+        margin-top: 40px;
+        margin-bottom: 10px;
         text-transform: uppercase;
       }
 
-      /* Subtitle / Artist */
+      /* Subtitle */
       .subtitle {
-        color: #aaaaaa;
-        font-size: 14px;
+        color: #888;
+        font-size: 12px;
         letter-spacing: 3px;
-        font-weight: 300;
-        margin-bottom: 50px;
+        font-weight: 400;
+        margin-bottom: 60px;
         text-transform: uppercase;
       }
 
-      /* Enter Button (Modern Pill Shape) */
+      /* Button */
       #start-button {
-        padding: 16px 40px;
+        padding: 18px 45px;
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 700;
         letter-spacing: 2px;
         text-transform: uppercase;
         background: white;
@@ -84,37 +87,43 @@
         border: none;
         border-radius: 50px;
         cursor: pointer;
-        opacity: 0; /* Hidden initially */
-        transform: translateY(10px);
-        transition: opacity 1s ease, transform 1s ease;
-        box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        opacity: 0; /* Starts hidden */
+        transform: translateY(15px);
+        transition: all 1s ease;
+        box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
       }
 
-      /* Active state for button */
+      /* Button Visible State */
       #start-button.visible {
         opacity: 1;
         transform: translateY(0);
       }
 
-      #start-button:active {
-        transform: scale(0.98);
-        opacity: 0.8;
+      /* Custom Loader (Your nice spinner) */
+      /* Hidden initially, visible only after click */
+      .custom-loader {
+        display: none; 
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        border-top: 3px solid white;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin-top: 20px;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
 
       /* --- AR FIXES --- */
-      /* Fix video visibility */
       video {
         z-index: -10 !important; 
         display: block !important;
       }
-      /* Transparent Canvas */
       .a-canvas {
         background-color: transparent !important;
-      }
-      
-      /* Customize MindAR Scanning UI (Optional Tweaks) */
-      .mindar-ui-overlay {
-        font-family: 'Montserrat', sans-serif !important;
       }
     </style>
   </head>
@@ -128,11 +137,13 @@
         <div class="subtitle">Majd Kurdieh</div>
       </div>
 
-      <button id="start-button">Enter Exhibition</button>
+      <button id="start-button">ENTER THE EXPERIENCE</button>
+      
+      <div id="loading-spinner" class="custom-loader"></div>
     </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiScanning: yes;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: no;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights, alpha: true" 
       vr-mode-ui="enabled: false" 
@@ -159,38 +170,52 @@
       document.addEventListener("DOMContentLoaded", function() {
         const startButton = document.getElementById('start-button');
         const splashScreen = document.getElementById('splash-screen');
+        const spinner = document.getElementById('loading-spinner');
         const sceneEl = document.querySelector('a-scene');
         const video = document.getElementById('painting-video');
         const target = document.querySelector('[mindar-image-target]');
 
-        // 1. Cinematic Entry: Show button after 2 seconds
+        // 1. Cinematic Entry: Reveal button after 2.5s
         setTimeout(() => {
           startButton.classList.add('visible');
-        }, 2000);
+        }, 2500);
 
-        // 2. Click Handler
+        // 2. Click Logic
         startButton.addEventListener('click', () => {
-          // A. Fade out splash immediately to prevent "stuck" screen
-          splashScreen.style.opacity = '0';
-          
-          // B. Remove splash from DOM after fade (0.8s)
-          setTimeout(() => {
-            splashScreen.style.display = 'none';
-          }, 800);
+          // A. Update UI: Hide button, Show Custom Spinner
+          startButton.style.display = 'none';
+          spinner.style.display = 'block';
 
-          // C. Start AR Engine
-          // This will trigger the Browser's "Allow Camera" prompt.
-          // Once allowed, MindAR's default "Scanning" UI will appear.
+          // B. Start AR (Triggers "Allow Camera" popup)
           sceneEl.systems['mindar-image-system'].start();
+
+          // C. SAFETY NET: Force hide splash after 5 seconds max
+          // This guarantees the spinner eventually goes away even if AR Ready lags
+          setTimeout(() => {
+            console.log("Failsafe triggered. Forcing splash hide.");
+            hideSplash();
+          }, 5000); 
         });
 
-        // 3. Video Control
+        // 3. AR Ready Listener (Normal Entry)
+        sceneEl.addEventListener("arReady", (event) => {
+           console.log("AR System Ready. Entering...");
+           hideSplash();
+        });
+
+        // Helper to hide splash cleanly
+        function hideSplash() {
+          splashScreen.style.opacity = '0';
+          setTimeout(() => {
+            splashScreen.style.display = 'none';
+          }, 1000);
+        }
+
+        // 4. Video Playback Control
         target.addEventListener("targetFound", event => {
-          console.log("Target Found");
           if(video) video.play();
         });
         target.addEventListener("targetLost", event => {
-          console.log("Target Lost");
           if(video) video.pause();
         });
       });
