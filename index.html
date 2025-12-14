@@ -20,34 +20,10 @@
         height: 100%;
         overflow: hidden;
         font-family: 'Montserrat', sans-serif;
-        background-color: transparent !important; /* Allow video to show */
+        background-color: black; /* Start Black */
       }
 
-      /* FIX 1: SAFETY FLOOR (Prevents White Flash) */
-      #deep-bg {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: black;
-        z-index: -999;
-        pointer-events: none;
-      }
-
-      /* FIX 2: BRUTALLY HIDE THE ERROR SCREEN */
-      /* This stops the "Failed to Launch" overlay from ever appearing */
-      .mindar-ui-error {
-        display: none !important;
-      }
-
-      /* FIX 3: FORCE SCANNING UI VISIBILITY */
-      /* This ensures the "Square" brackets appear */
-      .mindar-ui-overlay {
-        z-index: 10000 !important;
-      }
-
-      /* --- SPLASH SCREEN --- */
+      /* --- SPLASH SCREEN (UI LAYER) --- */
       #splash-screen {
         position: fixed;
         top: 0;
@@ -61,10 +37,8 @@
         justify-content: center;
         align-items: center;
         text-align: center;
-        transition: opacity 0.5s ease-out;
       }
 
-      /* Branding */
       .brand-top {
         position: absolute;
         top: 60px;
@@ -77,7 +51,6 @@
         padding-bottom: 15px;
       }
 
-      /* Title */
       h1 {
         color: white; 
         font-weight: 300; 
@@ -88,7 +61,6 @@
         text-transform: uppercase;
       }
 
-      /* Subtitle */
       .subtitle {
         color: #aaaaaa;
         font-size: 13px;
@@ -98,7 +70,6 @@
         text-transform: uppercase;
       }
 
-      /* Button */
       #start-button {
         padding: 20px 50px;
         font-size: 15px;
@@ -121,35 +92,20 @@
         transform: translateY(0);
       }
 
-      /* Spinner */
-      .custom-loader {
-        display: none; 
-        border: 4px solid rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-        border-top: 4px solid white;
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
-        margin-top: 20px;
+      /* --- RESTORING AR VISIBILITY --- */
+      /* We enable the default MindAR UI so you can see the Scanning Brackets */
+      .mindar-ui-overlay {
+        display: block !important;
+        z-index: 10000;
       }
-
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-
-      /* --- VIDEO & CANVAS --- */
+      
+      /* Ensure Video works on iOS */
       video {
         display: block !important;
-      }
-      .a-canvas {
-        background-color: transparent !important;
       }
     </style>
   </head>
   <body>
-
-    <div id="deep-bg"></div>
 
     <div id="splash-screen">
       <div class="brand-top">THE WORKSHOP</div>
@@ -160,15 +116,13 @@
       </div>
 
       <button id="start-button">ENTER THE EXPERIENCE</button>
-      
-      <div id="loading-spinner" class="custom-loader"></div>
-      <p id="status-msg" style="color:#666; font-size:10px; margin-top:15px; opacity:0; transition:opacity 0.5s">Initializing Camera...</p>
+      <p id="loading-text" style="color: #666; font-size: 10px; margin-top: 15px; display: none;">Starting Camera...</p>
     </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: no;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" 
       color-space="sRGB" 
-      renderer="colorManagement: true, physicallyCorrectLights, alpha: true" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
@@ -193,13 +147,10 @@
       document.addEventListener("DOMContentLoaded", function() {
         const startButton = document.getElementById('start-button');
         const splashScreen = document.getElementById('splash-screen');
-        const spinner = document.getElementById('loading-spinner');
-        const statusMsg = document.getElementById('status-msg');
         const sceneEl = document.querySelector('a-scene');
         const video = document.getElementById('painting-video');
         const target = document.querySelector('[mindar-image-target]');
-        
-        let hasClicked = false;
+        const loadingText = document.getElementById('loading-text');
 
         // 1. Reveal Button
         setTimeout(() => {
@@ -208,42 +159,23 @@
 
         // 2. Click Handler
         startButton.addEventListener('click', () => {
-          if (hasClicked) return;
-          hasClicked = true;
-
-          // A. Update UI
+          // UI Feedback
           startButton.style.display = 'none';
-          spinner.style.display = 'block';
-          statusMsg.style.opacity = '1';
+          loadingText.style.display = 'block';
 
-          // B. Start AR
-          console.log("Starting AR...");
+          // START AR
           sceneEl.systems['mindar-image-system'].start();
-
-          // C. THE "FORCE ENTRY" TIMER (3 Seconds)
-          // We do NOT wait for the camera to be ready. 
-          // We assume it will be ready in 3 seconds.
-          // This guarantees the splash screen disappears.
-          setTimeout(() => {
-             console.log("Timer ended. Removing splash.");
-             hideSplash();
-          }, 3000);
-        });
-
-        // 3. Helper to Hide Splash
-        function hideSplash() {
-          splashScreen.style.opacity = '0';
           
-          // Make body transparent so we see video through it
-          document.body.style.backgroundColor = 'transparent';
-          document.documentElement.style.backgroundColor = 'transparent';
-
+          // IMMEDIATE REMOVAL OF SPLASH
+          // We don't wait. We clear the screen so MindAR can take over.
           setTimeout(() => {
             splashScreen.style.display = 'none';
+            // Make body transparent to allow video see-through
+            document.body.style.backgroundColor = 'transparent';
           }, 500);
-        }
+        });
 
-        // 4. Video Control
+        // 3. Video Control
         target.addEventListener("targetFound", event => {
           console.log("Target Found");
           if(video) video.play();
