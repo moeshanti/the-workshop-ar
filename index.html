@@ -80,10 +80,10 @@
         z-index: 50; pointer-events: none; 
     }
     
-    /* 4. VIDEO MODAL (New) */
+    /* 4. VIDEO MODAL */
     #video-modal {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: black; z-index: 60; /* Above UI */
+        background: black; z-index: 60; 
         display: none; flex-direction: column; align-items: center; justify-content: center;
     }
 
@@ -102,13 +102,42 @@
 
     let isCardOpen = false;
     let animationTimer = null;
+    let isStoryMode = false; // Flag for shared links
 
-    // --- NEW: START EXPERIENCE LOGIC ---
+    // --- LOGIC: DETECT SHARED LINKS ---
+    function checkUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('view') === 'story') {
+            isStoryMode = true;
+            // Update Splash Button to reflect this
+            const btn = document.getElementById('btn-enter');
+            btn.innerText = "WATCH STORY";
+            btn.onclick = enterStoryMode;
+            btn.ontouchstart = enterStoryMode;
+        }
+    }
+
+    // --- STANDARD ENTRY (Scanner) ---
     function enterExperience() {
         const splash = document.getElementById('splash-screen');
         splash.style.opacity = '0';
         document.body.style.backgroundColor = 'transparent';
         setTimeout(() => { splash.style.display = 'none'; }, 1000);
+    }
+
+    // --- SHARED ENTRY (Direct to Video) ---
+    function enterStoryMode() {
+        const splash = document.getElementById('splash-screen');
+        splash.style.opacity = '0';
+        setTimeout(() => { 
+            splash.style.display = 'none'; 
+            watchStory(); // Open video immediately
+            
+            // Also show the info card so they can inquire
+            openCard(); 
+            // Hide the "Align Artwork" text since they aren't scanning
+            document.getElementById('scan-guide').style.display = 'none';
+        }, 1000);
     }
 
     function updateUI() {
@@ -125,6 +154,9 @@
     }
 
     function startExperience() {
+        // If in story mode, don't re-trigger scanning logic
+        if (isStoryMode) return;
+
         document.getElementById('scan-guide').classList.add('opacity-0');
         if(!isCardOpen) {
             animationTimer = setTimeout(() => {
@@ -150,7 +182,7 @@
     }
     window.closeCard = closeCard;
 
-    // --- NEW: VIDEO STORY LOGIC ---
+    // --- VIDEO STORY LOGIC ---
     function watchStory() {
         const modal = document.getElementById('video-modal');
         const video = document.getElementById('story-video');
@@ -158,7 +190,7 @@
         modal.style.display = 'flex';
         video.currentTime = 0;
         video.play();
-        video.muted = false; // Try to unmute
+        video.muted = false; 
     }
 
     function closeStory() {
@@ -169,25 +201,30 @@
         modal.style.display = 'none';
     }
 
+    // --- UPDATED SHARE LOGIC (Deep Linking) ---
     async function shareApp() {
+        // We create a clean URL with the ?view=story parameter
+        const baseUrl = window.location.href.split('?')[0];
+        const deepLink = `${baseUrl}?view=story`;
+
         const shareData = {
-            title: 'The Workshop AR',
-            text: 'Check out this magical AR art experience!',
-            url: window.location.href // Shares the link to the app
+            title: 'The Workshop: The Butterfly Voyage',
+            text: 'Watch the story behind this painting by Majd Kurdieh.',
+            url: deepLink 
         };
 
         if (navigator.share) {
             try { await navigator.share(shareData); } 
             catch (err) { console.log('Share failed', err); }
         } else {
-            alert("Copy this link to share: " + window.location.href);
+            alert("Link copied! Send this to friends: " + deepLink);
         }
     }
 
     function screenTapped(e) {
         if (e.target.closest('#btn-close') || e.target.closest('#info-card') || e.target.closest('#splash-screen') || e.target.closest('#video-modal')) return;
 
-        if(!isCardOpen && animationTimer) {
+        if(!isCardOpen && animationTimer && !isStoryMode) {
             clearTimeout(animationTimer);
             openCard(); 
         }
@@ -195,6 +232,8 @@
 
     document.addEventListener("DOMContentLoaded", () => {
         updateUI();
+        checkUrlParams(); // CHECK FOR SHARED LINK
+
         const target = document.getElementById('target');
         target.addEventListener("targetFound", () => { startExperience(); });
         
@@ -208,7 +247,8 @@
   <div id="splash-screen">
       <h1 class="text-white font-bold tracking-[0.4em] text-3xl uppercase mb-12 text-center px-4">THE WORKSHOP</h1>
       
-      <button onclick="enterExperience()" 
+      <button id="btn-enter"
+              onclick="enterExperience()" 
               class="border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95"
               style="pointer-events: auto !important;">
           ENTER EXPERIENCE
@@ -217,14 +257,10 @@
 
   <div id="video-modal">
       <button onclick="closeStory()" class="absolute top-6 right-6 text-white text-2xl z-50 p-2 interactive">✕</button>
-      
       <video id="story-video" src="./assets/story.mp4" class="w-full max-w-md rounded-lg shadow-2xl mb-8" controls playsinline></video>
       
       <button onclick="shareApp()" class="flex items-center gap-2 bg-green-500 text-white px-8 py-3 rounded-full font-bold tracking-widest interactive active:scale-95">
-          <span>SHARE EXPERIENCE</span>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-          </svg>
+          <span>SHARE STORY</span>
       </button>
   </div>
 
