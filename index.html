@@ -1,136 +1,292 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>The Butterfly Voyage</title>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>The Workshop | AR Companion</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCg7B8tiS2_Kn_Ktl07SqA7NKBc_O7Rb3U",
+      authDomain: "the-workshop-ar.firebaseapp.com",
+      projectId: "the-workshop-ar",
+      storageBucket: "the-workshop-ar.firebasestorage.app",
+      messagingSenderId: "12749243592",
+      appId: "1:12749243592:web:ea3341aa65354acdd051fd"
+    };
+
+    let db;
+    try {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+    } catch(e) { console.error("Firebase Init Error", e); }
+
+    window.submitRating = async (stars) => {
+      for(let i=1; i<=5; i++) {
+        const star = document.getElementById(`star-${i}`);
+        if(i <= stars) star.classList.add('text-yellow-400');
+        else star.classList.remove('text-yellow-400');
+      }
+      if(db) {
+         try {
+           await addDoc(collection(db, "ratings"), {
+             painting: "The Butterfly Voyage",
+             stars: stars,
+             timestamp: serverTimestamp()
+           });
+           document.getElementById('feedback').classList.remove('opacity-0');
+         } catch(e) { alert("Save Error: " + e.message); }
+      }
+    }
+  </script>
+
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    /* 1. GLOBAL STYLES */
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: black; }
+
+    /* 2. SPLASH SCREEN (High Z-Index to cover everything) */
+    #splash-screen {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: black; z-index: 99999; /* Top layer */
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: opacity 0.8s ease-out;
+    }
+
+    /* 3. LAYERS */
+    video {
+        position: absolute !important; top: 50% !important; left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        min-width: 100vw !important; min-height: 100vh !important;
+        width: auto !important; height: auto !important;
+        object-fit: cover !important; z-index: -10 !important;
+    }
+
+    .a-canvas {
+        width: 100% !important; height: 100% !important;
+        position: absolute !important; top: 0 !important; left: 0 !important;
+        z-index: 1 !important; background: transparent !important;
+    }
+
+    #ui-layer {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        z-index: 50; pointer-events: none; 
+    }
     
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    .interactive { pointer-events: auto !important; cursor: pointer; }
+  </style>
 
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: sans-serif;
-        background-color: transparent !important; /* Fix for black background */
-      }
+  <script>
+    // --- CONFIGURATION ---
+    const ARTWORK_DATA = {
+        title: "The Butterfly Voyage",
+        artist: "Majd Kurdieh",
+        currency: "AED",
+        price: "15,000",
+        whatsappNumber: "971559522980",
+        animationDuration: 8000 
+    };
 
-      /* --- SPLASH SCREEN STYLES --- */
-      #splash-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #000000; /* Black background for splash */
-        z-index: 99999; /* Ensures it sits on top of everything */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        transition: opacity 0.5s ease-out; /* Smooth fade out */
-      }
+    let isCardOpen = false;
+    let animationTimer = null;
+    let audioUnlocked = false;
 
-      /* Button Styling */
-      #start-button {
-        padding: 15px 40px;
-        font-size: 18px;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        border-radius: 30px;
-        border: none;
-        background: white;
-        color: black;
-        margin-top: 20px;
-        cursor: pointer;
-        box-shadow: 0 4px 15px rgba(255,255,255,0.2);
-      }
+    // --- AUDIO SYSTEM ---
+    function initAudio() {
+        if(audioUnlocked) return;
+        const bgm = document.getElementById('bgm');
+        bgm.volume = 0.5;
+        bgm.play().then(() => {
+            bgm.pause();
+            bgm.currentTime = 0;
+            audioUnlocked = true;
+        }).catch(e => console.log("Audio unlock deferred"));
+    }
+
+    function playSound() {
+        const bgm = document.getElementById('bgm');
+        if(audioUnlocked || bgm.readyState >= 2) {
+            bgm.play().catch(e => console.log("Playback failed"));
+        }
+    }
+
+    // --- SPLASH SCREEN LOGIC ---
+    function enterExperience(e) {
+        if(e) { e.preventDefault(); e.stopPropagation(); }
+
+        // 1. Unlock Audio
+        try { initAudio(); } catch(err) {}
+
+        // 2. Change Button Text (Feedback)
+        const btn = document.getElementById('btn-enter');
+        btn.innerText = "STARTING CAMERA...";
+        btn.classList.add('opacity-50');
+
+        // 3. We DO NOT hide the splash screen yet.
+        // We wait for the AR Engine to tell us the camera is ready.
+    }
+
+    // Called automatically when MindAR is ready
+    function onARReady() {
+        console.log("AR Ready - Hiding Splash");
+        const splash = document.getElementById('splash-screen');
+        splash.style.opacity = '0';
+        setTimeout(() => { splash.style.display = 'none'; }, 800);
+        
+        // Ensure background is transparent now
+        document.body.style.background = 'transparent';
+    }
+
+    function updateUI() {
+        document.getElementById('lbl-title').innerText = ARTWORK_DATA.title;
+        document.getElementById('lbl-artist').innerText = ARTWORK_DATA.artist;
+        document.getElementById('btn-text').innerText = `Inquire (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price})`;
+
+        const message = `Hi! I am interested in the painting "${ARTWORK_DATA.title}" by ${ARTWORK_DATA.artist} (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price}). Is it available?`;
+        const url = `https://wa.me/${ARTWORK_DATA.whatsappNumber}?text=${encodeURIComponent(message)}`;
+        
+        const btn = document.getElementById('btn-inquire');
+        btn.onclick = () => window.open(url, '_blank');
+        btn.ontouchstart = () => window.open(url, '_blank');
+    }
+
+    function startExperience() {
+        document.getElementById('scan-guide').classList.add('opacity-0');
+        playSound(); 
+
+        if(!isCardOpen) {
+            animationTimer = setTimeout(() => {
+                openCard();
+            }, ARTWORK_DATA.animationDuration);
+        }
+    }
+
+    function openCard() {
+        if(isCardOpen) return;
+        isCardOpen = true;
+        const card = document.getElementById('info-card');
+        card.classList.remove('translate-y-full'); 
+        card.classList.add('translate-y-0');
+    }
+
+    function closeCard(e) {
+        if(e) { e.preventDefault(); e.stopPropagation(); }
+        isCardOpen = false;
+        const card = document.getElementById('info-card');
+        card.classList.add('translate-y-full');
+        card.classList.remove('translate-y-0');
+    }
+    window.closeCard = closeCard;
+    window.enterExperience = enterExperience;
+
+    function screenTapped(e) {
+        if(!audioUnlocked) initAudio();
+        if (e.target.closest('#btn-close') || e.target.closest('#info-card') || e.target.closest('#splash-screen')) return;
+
+        if(!isCardOpen && animationTimer) {
+            clearTimeout(animationTimer);
+            openCard(); 
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        updateUI();
+        
+        // Listen for AR Ready Event to hide splash screen
+        const scene = document.querySelector('a-scene');
+        scene.addEventListener('arReady', onARReady);
+
+        const target = document.getElementById('target');
+        target.addEventListener("targetFound", () => { startExperience(); });
+        
+        document.body.addEventListener('click', screenTapped);
+        document.body.addEventListener('touchstart', screenTapped);
+    });
+  </script>
+</head>
+<body>
+
+  <audio id="bgm" src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_072041285e.mp3?filename=magic-spells-16345.mp3" loop preload="auto"></audio>
+
+  <div id="splash-screen">
+      <h1 class="text-white font-bold tracking-[0.4em] text-3xl uppercase mb-10 text-center px-4">THE WORKSHOP</h1>
       
-      #start-button:active {
-        transform: scale(0.95);
-      }
+      <button id="btn-enter" 
+              onclick="enterExperience(event)" 
+              ontouchstart="enterExperience(event)"
+              class="border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95"
+              style="pointer-events: auto !important;">
+          ENTER EXPERIENCE
+      </button>
+      
+      <p class="text-white/40 text-xs mt-8 font-light tracking-wide uppercase">Enable Camera & Sound</p>
+  </div>
 
-      /* --- AR & VIDEO FIXES --- */
-      /* This ensures the camera video feed (created by MindAR) is visible */
-      video {
-        z-index: -10 !important; 
-        display: block !important;
-      }
+  <a-scene 
+    mindar-image="imageTargetSrc: ./assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01; uiScanning: no; uiLoading: no;" 
+    color-space="sRGB" 
+    renderer="colorManagement: true, physicallyCorrectLights; logarithmicDepthBuffer: true;" 
+    vr-mode-ui="enabled: false" 
+    device-orientation-permission-ui="enabled: false">
+    
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    
+    <a-entity id="target" mindar-image-target="targetIndex: 0">
+        <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5" animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
+        <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01" animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
+    </a-entity>
+  </a-scene>
 
-      /* This forces the A-Frame 3D canvas to be transparent */
-      .a-canvas {
-        background-color: transparent !important;
-      }
-    </style>
-  </head>
-  <body>
-
-    <div id="splash-screen">
-      <h1 style="color: white; font-weight: 300; letter-spacing: 2px;">The Butterfly Voyage</h1>
-      <button id="start-button">Enter Experience</button>
+  <div id="ui-layer" class="flex flex-col justify-between p-6 pb-10">
+    
+    <div class="flex justify-between items-start w-full">
+        <h1 class="text-white font-bold tracking-widest text-lg uppercase drop-shadow-md">The Workshop</h1>
     </div>
 
-    <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;" 
-      color-space="sRGB" 
-      renderer="colorManagement: true, physicallyCorrectLights, alpha: true" 
-      vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: false">
-      
-      <a-assets>
-        <video id="painting-video" src="./your-video.mp4" loop="true" crossorigin="anonymous"></video>
-      </a-assets>
+    <div id="scan-guide" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-500">
+        <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative">
+            <p class="absolute -bottom-10 w-full text-center text-white/80 font-light tracking-widest text-sm uppercase">Align Artwork</p>
+        </div>
+    </div>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <div id="info-card" class="interactive bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out relative">
+        
+        <button id="btn-close" 
+                onclick="window.closeCard(event)" 
+                ontouchstart="window.closeCard(event)"
+                class="interactive absolute top-4 right-4 bg-black/40 w-10 h-10 rounded-full flex items-center justify-center text-white z-50 shadow-md border border-white/20"
+                style="pointer-events: auto !important; cursor: pointer;">
+            ✕
+        </button>
 
-      <a-entity mindar-image-target="targetIndex: 0">
-        <a-plane 
-          src="#painting-video" 
-          position="0 0 0" 
-          height="1" 
-          width="1" 
-          rotation="0 0 0">
-        </a-plane>
-      </a-entity>
-    </a-scene>
+        <div class="mb-4">
+           <h2 id="lbl-title" class="text-2xl font-light mb-1">...</h2>
+           <p id="lbl-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">...</p>
+        </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        const startButton = document.getElementById('start-button');
-        const splashScreen = document.getElementById('splash-screen');
-        const sceneEl = document.querySelector('a-scene');
-        const video = document.getElementById('painting-video');
-        const target = document.querySelector('[mindar-image-target]');
+        <div class="flex flex-col items-center mb-6">
+            <div class="flex gap-2">
+                <button id="star-1" onclick="submitRating(1)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                <button id="star-2" onclick="submitRating(2)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                <button id="star-3" onclick="submitRating(3)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                <button id="star-4" onclick="submitRating(4)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                <button id="star-5" onclick="submitRating(5)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
+            </div>
+            <p id="feedback" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Rating Saved!</p>
+        </div>
 
-        // --- THE START LOGIC ---
-        startButton.addEventListener('click', () => {
-          console.log("User clicked Enter. Hiding splash and starting AR...");
+        <button id="btn-inquire" class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+            <span id="btn-text">Inquire</span>
+        </button>
+    </div>
+  </div>
 
-          // 1. Hide the splash screen immediately
-          splashScreen.style.opacity = '0';
-          setTimeout(() => {
-            splashScreen.style.display = 'none';
-          }, 500);
-
-          // 2. MANUALLY START THE AR ENGINE
-          // This triggers the browser's "Allow Camera" prompt now, not before.
-          sceneEl.systems['mindar-image-system'].start();
-        });
-
-        // --- VIDEO CONTROL ---
-        // Play video only when the image target is detected
-        target.addEventListener("targetFound", event => {
-          console.log("Target Found");
-          if(video) video.play();
-        });
-
-        // Pause video when the image target is lost
-        target.addEventListener("targetLost", event => {
-          console.log("Target Lost");
-          if(video) video.pause();
-        });
-      });
-    </script>
-  </body>
+</body>
 </html>
