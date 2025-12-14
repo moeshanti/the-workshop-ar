@@ -80,8 +80,8 @@
         z-index: 50; pointer-events: none; 
     }
     
-    /* 4. VIDEO MODAL */
-    #video-modal {
+    /* 4. MODALS (Video & Visit CTA) */
+    .modal-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: black; z-index: 60; 
         display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -97,19 +97,26 @@
         currency: "AED",
         price: "15,000",
         whatsappNumber: "971559522980",
-        animationDuration: 8000 
+        animationDuration: 8000,
+        googleMaps: "https://maps.app.goo.gl/YourGoogleMapsLinkHere" // Replace with real link
     };
 
     let isCardOpen = false;
     let animationTimer = null;
-    let isStoryMode = false; // Flag for shared links
+    let isStoryMode = false; 
 
     // --- LOGIC: DETECT SHARED LINKS ---
     function checkUrlParams() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('view') === 'story') {
             isStoryMode = true;
-            // Update Splash Button to reflect this
+            console.log("Story Mode Active: Disabling AR");
+            
+            // CRITICAL: Remove AR Scene immediately to stop Camera Permission
+            const scene = document.querySelector('a-scene');
+            if(scene) scene.remove();
+
+            // Update Splash Button
             const btn = document.getElementById('btn-enter');
             btn.innerText = "WATCH STORY";
             btn.onclick = enterStoryMode;
@@ -132,11 +139,6 @@
         setTimeout(() => { 
             splash.style.display = 'none'; 
             watchStory(); // Open video immediately
-            
-            // Also show the info card so they can inquire
-            openCard(); 
-            // Hide the "Align Artwork" text since they aren't scanning
-            document.getElementById('scan-guide').style.display = 'none';
         }, 1000);
     }
 
@@ -154,8 +156,7 @@
     }
 
     function startExperience() {
-        // If in story mode, don't re-trigger scanning logic
-        if (isStoryMode) return;
+        if (isStoryMode) return; // Double safety
 
         document.getElementById('scan-guide').classList.add('opacity-0');
         if(!isCardOpen) {
@@ -199,11 +200,14 @@
         
         video.pause();
         modal.style.display = 'none';
+
+        // NEW: If in Story Mode, show "Visit Us" instead of going back to black screen
+        if(isStoryMode) {
+            document.getElementById('visit-cta').style.display = 'flex';
+        }
     }
 
-    // --- UPDATED SHARE LOGIC (Deep Linking) ---
     async function shareApp() {
-        // We create a clean URL with the ?view=story parameter
         const baseUrl = window.location.href.split('?')[0];
         const deepLink = `${baseUrl}?view=story`;
 
@@ -222,7 +226,7 @@
     }
 
     function screenTapped(e) {
-        if (e.target.closest('#btn-close') || e.target.closest('#info-card') || e.target.closest('#splash-screen') || e.target.closest('#video-modal')) return;
+        if (e.target.closest('#btn-close') || e.target.closest('#info-card') || e.target.closest('#splash-screen') || e.target.closest('.modal-overlay')) return;
 
         if(!isCardOpen && animationTimer && !isStoryMode) {
             clearTimeout(animationTimer);
@@ -231,11 +235,16 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-        updateUI();
-        checkUrlParams(); // CHECK FOR SHARED LINK
+        // 1. Detect Mode immediately
+        checkUrlParams(); 
 
+        updateUI();
+        
+        // 2. Only attach AR listeners if AR scene exists (Normal Mode)
         const target = document.getElementById('target');
-        target.addEventListener("targetFound", () => { startExperience(); });
+        if(target) {
+            target.addEventListener("targetFound", () => { startExperience(); });
+        }
         
         document.body.addEventListener('click', screenTapped);
         document.body.addEventListener('touchstart', screenTapped);
@@ -255,13 +264,23 @@
       </button>
   </div>
 
-  <div id="video-modal">
+  <div id="video-modal" class="modal-overlay">
       <button onclick="closeStory()" class="absolute top-6 right-6 text-white text-2xl z-50 p-2 interactive">✕</button>
       <video id="story-video" src="./assets/story.mp4" class="w-full max-w-md rounded-lg shadow-2xl mb-8" controls playsinline></video>
       
       <button onclick="shareApp()" class="flex items-center gap-2 bg-green-500 text-white px-8 py-3 rounded-full font-bold tracking-widest interactive active:scale-95">
           <span>SHARE STORY</span>
       </button>
+  </div>
+
+  <div id="visit-cta" class="modal-overlay">
+      <h2 class="text-white text-2xl font-light mb-4 text-center px-4">Experience the Magic</h2>
+      <p class="text-white/60 text-center px-8 mb-8">Visit The Workshop to see "The Butterfly Voyage" come to life in Augmented Reality.</p>
+      
+      <button onclick="window.location.href = window.location.href.split('?')[0]" class="border border-white text-white px-8 py-3 rounded-full mb-4 hover:bg-white hover:text-black transition interactive">
+          TRY SCANNER
+      </button>
+      <p class="text-white/30 text-xs mt-4">Located in Al Wasl Road, Dubai</p>
   </div>
 
   <a-scene 
