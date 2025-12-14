@@ -6,13 +6,13 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&display=swap" rel="stylesheet">
 
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      /* Base Styles */
+      /* --- CORE LAYOUT --- */
       html, body {
         margin: 0;
         padding: 0;
@@ -20,7 +20,8 @@
         height: 100%;
         overflow: hidden;
         font-family: 'Montserrat', sans-serif;
-        background-color: black;
+        /* CRITICAL: Starts Black (to hide white flash), becomes Transparent via JS later */
+        background-color: black; 
       }
 
       /* --- SPLASH SCREEN --- */
@@ -31,54 +32,54 @@
         width: 100%;
         height: 100%;
         background-color: black;
-        z-index: 99999; /* Always on top */
+        z-index: 99999; /* Highest Priority */
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         text-align: center;
-        transition: opacity 1s ease-out;
+        transition: opacity 0.5s ease-out; /* Faster fade for snappier entry */
       }
 
-      /* Prominent Branding */
+      /* FIX: Prominent Branding */
       .brand-top {
         position: absolute;
-        top: 50px;
+        top: 60px; /* Lowered slightly */
         color: white;
-        font-size: 16px; 
-        letter-spacing: 6px; 
-        font-weight: 700; 
+        font-size: 20px; /* Much Larger */
+        letter-spacing: 8px; /* Very Wide Spacing */
+        font-weight: 900; /* Extra Bold */
         text-transform: uppercase;
-        border-bottom: 1px solid rgba(255,255,255,0.3);
-        padding-bottom: 10px;
-        width: 60%;
+        border-bottom: 2px solid white; /* Thicker line */
+        padding-bottom: 15px;
+        width: auto;
       }
 
-      /* Title */
+      /* Main Title */
       h1 {
         color: white; 
         font-weight: 300; 
         letter-spacing: 2px;
-        font-size: 26px;
-        margin-top: 40px;
+        font-size: 28px;
+        margin-top: 60px;
         margin-bottom: 10px;
         text-transform: uppercase;
       }
 
       /* Subtitle */
       .subtitle {
-        color: #888;
-        font-size: 12px;
+        color: #aaaaaa;
+        font-size: 13px;
         letter-spacing: 3px;
         font-weight: 400;
         margin-bottom: 60px;
         text-transform: uppercase;
       }
 
-      /* Button */
+      /* FIX: Button Text & Style */
       #start-button {
-        padding: 18px 45px;
-        font-size: 14px;
+        padding: 20px 50px;
+        font-size: 15px;
         font-weight: 700;
         letter-spacing: 2px;
         text-transform: uppercase;
@@ -87,27 +88,25 @@
         border: none;
         border-radius: 50px;
         cursor: pointer;
-        opacity: 0; /* Starts hidden */
-        transform: translateY(15px);
+        opacity: 0; 
+        transform: translateY(20px);
         transition: all 1s ease;
-        box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
       }
 
-      /* Button Visible State */
       #start-button.visible {
         opacity: 1;
         transform: translateY(0);
       }
 
-      /* Custom Loader (Your nice spinner) */
-      /* Hidden initially, visible only after click */
+      /* Custom Spinner */
       .custom-loader {
         display: none; 
-        border: 3px solid rgba(255, 255, 255, 0.1);
+        border: 4px solid rgba(255, 255, 255, 0.1);
         border-radius: 50%;
-        border-top: 3px solid white;
-        width: 40px;
-        height: 40px;
+        border-top: 4px solid white;
+        width: 50px;
+        height: 50px;
         animation: spin 1s linear infinite;
         margin-top: 20px;
       }
@@ -117,11 +116,15 @@
         100% { transform: rotate(360deg); }
       }
 
-      /* --- AR FIXES --- */
+      /* --- AR VISIBILITY FIXES --- */
+      /* CRITICAL FIX: 
+         We do NOT force z-index: -10 anymore. 
+         We let MindAR handle placement, but ensure display is block.
+      */
       video {
-        z-index: -10 !important; 
         display: block !important;
       }
+      
       .a-canvas {
         background-color: transparent !important;
       }
@@ -175,41 +178,39 @@
         const video = document.getElementById('painting-video');
         const target = document.querySelector('[mindar-image-target]');
 
-        // 1. Cinematic Entry: Reveal button after 2.5s
+        // 1. Reveal Button (Cinematic Delay)
         setTimeout(() => {
           startButton.classList.add('visible');
-        }, 2500);
+        }, 2000);
 
-        // 2. Click Logic
+        // 2. Button Click Handler
         startButton.addEventListener('click', () => {
-          // A. Update UI: Hide button, Show Custom Spinner
+          // Hide Button, Show Spinner
           startButton.style.display = 'none';
           spinner.style.display = 'block';
 
-          // B. Start AR (Triggers "Allow Camera" popup)
+          // Start AR Engine (Triggers Permission Prompt)
           sceneEl.systems['mindar-image-system'].start();
-
-          // C. SAFETY NET: Force hide splash after 5 seconds max
-          // This guarantees the spinner eventually goes away even if AR Ready lags
-          setTimeout(() => {
-            console.log("Failsafe triggered. Forcing splash hide.");
-            hideSplash();
-          }, 5000); 
         });
 
-        // 3. AR Ready Listener (Normal Entry)
+        // 3. THE "BLACK SCREEN" FIX
+        // We wait for the AR system to be ready (Camera active).
         sceneEl.addEventListener("arReady", (event) => {
-           console.log("AR System Ready. Entering...");
-           hideSplash();
-        });
+           console.log("AR Ready. Revealing Camera...");
+           
+           // A. Fade out the Splash Screen
+           splashScreen.style.opacity = '0';
 
-        // Helper to hide splash cleanly
-        function hideSplash() {
-          splashScreen.style.opacity = '0';
-          setTimeout(() => {
-            splashScreen.style.display = 'none';
-          }, 1000);
-        }
+           // B. CRITICAL: Set the body background to transparent.
+           // This ensures the camera video (which sits behind the body) is visible.
+           document.body.style.backgroundColor = 'transparent';
+           document.documentElement.style.backgroundColor = 'transparent';
+
+           // C. Remove Splash from layout after fade
+           setTimeout(() => {
+             splashScreen.style.display = 'none';
+           }, 500);
+        });
 
         // 4. Video Playback Control
         target.addEventListener("targetFound", event => {
