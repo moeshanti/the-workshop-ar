@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      /* --- CORE LAYOUT --- */
+      /* --- BASE --- */
       body {
         margin: 0;
         overflow: hidden;
@@ -20,8 +20,7 @@
         background-color: black; 
       }
 
-      /* --- SPLASH SCREEN --- */
-      /* This sits on top of everything until we click */
+      /* --- SPLASH SCREEN (Simple Cover) --- */
       #splash-screen {
         position: fixed;
         top: 0;
@@ -82,20 +81,20 @@
         margin-top: 20px;
         box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
       }
-      
-      #start-button:active {
-        transform: scale(0.95);
-      }
 
-      /* --- AR UI OVERRIDES --- */
-      /* 1. Hide the error screen brutally */
-      .mindar-ui-error {
-        display: none !important;
-      }
-      
-      /* 2. Ensure Scanning UI is visible */
+      /* --- AR VISIBILITY OVERRIDES --- */
+      /* These ensure the MindAR scanning brackets and error messages appear */
       .mindar-ui-overlay {
         z-index: 10000 !important;
+        display: block !important;
+      }
+      .mindar-ui-scanning {
+        display: block !important;
+      }
+      
+      /* Force video to work on iOS */
+      video {
+        display: block !important;
       }
     </style>
   </head>
@@ -103,36 +102,33 @@
 
     <div id="splash-screen">
       <div class="brand-top">THE WORKSHOP</div>
-      
       <div>
         <h1>The Butterfly Voyage</h1>
         <div class="subtitle">Majd Kurdieh</div>
       </div>
-
       <button id="start-button">ENTER THE EXPERIENCE</button>
     </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiScanning: yes; uiError: no;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiScanning: yes; uiError: yes;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <video id="painting-video" src="./your-video.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
+        <a-asset-item id="foxModel" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/band-example/raccoon/scene.gltf"></a-asset-item>
+        <a-asset-item id="bearModel" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/band-example/bear/scene.gltf"></a-asset-item>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-plane 
-          src="#painting-video" 
-          position="0 0 0" 
-          height="1" 
-          width="1" 
-          rotation="0 0 0">
-        </a-plane>
+        
+        <a-entity gltf-model="#foxModel" rotation="0 0 0" position="0 -0.25 0" scale="0.05 0.05 0.05"></a-entity>
+        
+        <a-entity gltf-model="#bearModel" rotation="0 0 0" position="0 -0.25 0" scale="0.05 0.05 0.05" animation="property: position; to: 0 0.25 0; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate"></a-entity>
+
       </a-entity>
     </a-scene>
 
@@ -140,29 +136,15 @@
       const startButton = document.getElementById('start-button');
       const splashScreen = document.getElementById('splash-screen');
       const sceneEl = document.querySelector('a-scene');
-      const video = document.getElementById('painting-video');
-      const target = document.querySelector('[mindar-image-target]');
 
-      // THE "INSTANT SWAP" LOGIC
       startButton.addEventListener('click', () => {
-        // 1. DELETE Splash Screen immediately. 
-        // We do not fade. We clear the DOM so MindAR has 0 interference.
-        splashScreen.style.display = 'none';
+        // 1. DELETE THE SPLASH SCREEN INSTANTLY
+        // We rip it off so MindAR sees the screen clearly.
+        splashScreen.remove();
 
-        // 2. Start the AR Engine
-        // This will trigger the browser's "Allow Camera" prompt naturally.
+        // 2. START AR
+        // This triggers the "Allow Camera" prompt naturally.
         sceneEl.systems['mindar-image-system'].start();
-      });
-
-      // Video Control
-      target.addEventListener("targetFound", event => {
-        console.log("Target Found");
-        video.play();
-      });
-
-      target.addEventListener("targetLost", event => {
-        console.log("Target Lost");
-        video.pause();
       });
     </script>
   </body>
