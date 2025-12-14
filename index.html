@@ -7,110 +7,73 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&display=swap" rel="stylesheet">
-
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      /* --- BASE --- */
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: 'Montserrat', sans-serif;
-        background-color: black; 
-      }
+      body { margin: 0; overflow: hidden; font-family: 'Montserrat', sans-serif; background: black; }
 
-      /* --- SPLASH SCREEN (Simple Cover) --- */
+      /* --- 1. SPLASH SCREEN --- */
       #splash-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: black;
-        z-index: 999999; 
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: black; z-index: 99999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
         text-align: center;
       }
-
-      .brand-top {
-        position: absolute;
-        top: 60px;
-        color: white;
-        font-size: 20px;
-        letter-spacing: 8px;
-        font-weight: 900;
-        text-transform: uppercase;
-        border-bottom: 2px solid white;
-        padding-bottom: 15px;
-      }
-
-      h1 {
-        color: white; 
-        font-weight: 300; 
-        letter-spacing: 2px;
-        font-size: 28px;
-        margin-top: 60px;
-        margin-bottom: 10px;
-        text-transform: uppercase;
-      }
-
-      .subtitle {
-        color: #aaaaaa;
-        font-size: 13px;
-        letter-spacing: 3px;
-        font-weight: 400;
-        margin-bottom: 60px;
-        text-transform: uppercase;
-      }
-
+      .brand-top { color: white; font-size: 20px; letter-spacing: 8px; font-weight: 900; border-bottom: 2px solid white; padding-bottom: 15px; margin-bottom: 40px;}
+      h1 { color: white; font-weight: 300; letter-spacing: 2px; font-size: 24px; margin: 0; }
+      .subtitle { color: #aaaaaa; font-size: 12px; letter-spacing: 3px; margin-top: 10px; margin-bottom: 60px; }
       #start-button {
-        padding: 20px 50px;
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        background: white;
-        color: black;
-        border: none;
-        border-radius: 50px;
-        cursor: pointer;
-        margin-top: 20px;
-        box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
+        padding: 18px 40px; font-size: 14px; font-weight: 700; letter-spacing: 2px;
+        background: white; color: black; border: none; border-radius: 50px; cursor: pointer;
       }
 
-      /* --- AR VISIBILITY OVERRIDES --- */
-      /* These ensure the MindAR scanning brackets and error messages appear */
-      .mindar-ui-overlay {
-        z-index: 10000 !important;
-        display: block !important;
+      /* --- 2. AR UI (Stars & WhatsApp) --- */
+      /* Hidden until target is found */
+      #ar-ui {
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        width: 90%; max-width: 400px;
+        background: rgba(20, 20, 20, 0.9);
+        border-radius: 20px; padding: 20px;
+        display: none; /* Hidden by default */
+        z-index: 10000;
+        text-align: center; border: 1px solid rgba(255,255,255,0.1);
       }
-      .mindar-ui-scanning {
-        display: block !important;
+      .ui-title { color: white; font-size: 18px; margin-bottom: 5px; }
+      .stars { color: #FFD700; font-size: 24px; margin: 10px 0; letter-spacing: 5px; }
+      .whatsapp-btn {
+        display: block; width: 100%; padding: 15px 0;
+        background: white; color: black; font-weight: bold;
+        text-decoration: none; border-radius: 10px; margin-top: 10px;
+        text-transform: uppercase; letter-spacing: 1px;
       }
-      
-      /* Force video to work on iOS */
-      video {
-        display: block !important;
-      }
+
+      /* --- 3. MINDAR OVERRIDES --- */
+      /* Critical: Hide the 'Failed to Launch' error */
+      .mindar-ui-error { display: none !important; }
+      /* Ensure scanning UI is visible */
+      .mindar-ui-overlay { z-index: 5000 !important; }
     </style>
   </head>
   <body>
 
     <div id="splash-screen">
       <div class="brand-top">THE WORKSHOP</div>
-      <div>
-        <h1>The Butterfly Voyage</h1>
-        <div class="subtitle">Majd Kurdieh</div>
-      </div>
+      <h1>The Butterfly Voyage</h1>
+      <div class="subtitle">Majd Kurdieh</div>
       <button id="start-button">ENTER THE EXPERIENCE</button>
     </div>
 
+    <div id="ar-ui">
+      <div class="ui-title">The Butterfly Voyage</div>
+      <div class="stars">★★★★★</div>
+      <a href="https://wa.me/971501234567?text=I%20am%20interested%20in%20The%20Butterfly%20Voyage" class="whatsapp-btn">
+        Inquire (AED 15,000)
+      </a>
+    </div>
+
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiScanning: yes; uiError: yes;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiScanning: yes; uiError: no;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -124,27 +87,41 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
+        <a-entity gltf-model="#foxModel" rotation="0 0 0" position="-0.2 -0.2 0" scale="0.05 0.05 0.05" 
+                  animation="property: position; to: -0.2 0.1 0; dur: 2000; easing: easeInOutSine; loop: true; dir: alternate">
+        </a-entity>
         
-        <a-entity gltf-model="#foxModel" rotation="0 0 0" position="0 -0.25 0" scale="0.05 0.05 0.05"></a-entity>
-        
-        <a-entity gltf-model="#bearModel" rotation="0 0 0" position="0 -0.25 0" scale="0.05 0.05 0.05" animation="property: position; to: 0 0.25 0; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate"></a-entity>
-
+        <a-entity gltf-model="#bearModel" rotation="0 0 0" position="0.2 -0.2 0" scale="0.05 0.05 0.05" 
+                  animation="property: position; to: 0.2 0.1 0; dur: 2500; easing: easeInOutSine; loop: true; dir: alternate">
+        </a-entity>
       </a-entity>
     </a-scene>
 
     <script>
       const startButton = document.getElementById('start-button');
       const splashScreen = document.getElementById('splash-screen');
+      const arUi = document.getElementById('ar-ui');
       const sceneEl = document.querySelector('a-scene');
+      const target = document.querySelector('[mindar-image-target]');
 
+      // 1. CLICK TO START
       startButton.addEventListener('click', () => {
-        // 1. DELETE THE SPLASH SCREEN INSTANTLY
-        // We rip it off so MindAR sees the screen clearly.
+        // INSTANTLY REMOVE SPLASH to prevent conflicts
         splashScreen.remove();
-
-        // 2. START AR
-        // This triggers the "Allow Camera" prompt naturally.
+        // START AR
         sceneEl.systems['mindar-image-system'].start();
+      });
+
+      // 2. TARGET FOUND (Show UI + Models appear automatically)
+      target.addEventListener("targetFound", event => {
+        console.log("Painting Found!");
+        arUi.style.display = 'block'; // Show Stars/WhatsApp
+      });
+
+      // 3. TARGET LOST
+      target.addEventListener("targetLost", event => {
+        console.log("Painting Lost");
+        arUi.style.display = 'none'; // Hide UI
       });
     </script>
   </body>
