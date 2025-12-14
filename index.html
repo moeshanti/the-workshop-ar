@@ -8,11 +8,15 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      body {
+      /* FIX 3: THE "UGLY WHITE BACKGROUND" KILLER */
+      html, body {
         margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
         overflow: hidden;
-        font-family: sans-serif;
-        background-color: transparent !important;
+        font-family: 'Courier New', Courier, monospace; /* Artistic font */
+        background-color: #000000 !important; /* Force Black Background */
       }
 
       /* --- SPLASH SCREEN STYLES --- */
@@ -28,47 +32,97 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        transition: opacity 1s ease-out; /* Slower fade out for elegance */
+        transition: opacity 1.5s ease-out; /* Slow elegant fade */
       }
 
+      /* FIX 1: THE WORKSHOP BRANDING */
+      #brand-header {
+        position: absolute;
+        top: 40px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        color: white;
+        font-size: 14px;
+        letter-spacing: 4px;
+        font-weight: bold;
+        text-transform: uppercase;
+        opacity: 0.8;
+      }
+
+      /* Main Title */
       h1 {
         color: white; 
         font-weight: 300; 
-        letter-spacing: 2px;
-        margin-bottom: 30px;
+        letter-spacing: 3px;
+        margin-bottom: 10px;
         text-align: center;
+        font-size: 24px;
       }
 
-      /* --- THE BUTTON ANIMATION --- */
-      #start-button {
-        padding: 15px 40px;
-        font-size: 18px;
-        font-weight: bold;
+      /* Artist Name */
+      .subtitle {
+        color: #888;
+        font-size: 12px;
+        letter-spacing: 2px;
+        margin-bottom: 40px;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        border-radius: 30px;
-        border: none;
+      }
+
+      /* FIX 2: LOADING SPINNER (Visible before button) */
+      .loader {
+        width: 40px;
+        height: 40px;
+        border: 2px solid rgba(255,255,255,0.1);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+        /* Initially visible, hidden when button appears */
+        display: block; 
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* THE ENTER BUTTON */
+      #start-button {
+        padding: 18px 50px;
+        font-size: 16px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border-radius: 50px;
+        border: 1px solid white;
         background: white;
         color: black;
         cursor: pointer;
-        box-shadow: 0 4px 15px rgba(255,255,255,0.2);
         
         /* Start Hidden */
         opacity: 0; 
-        transform: translateY(20px); /* Slightly down */
-        pointer-events: none; /* Not clickable yet */
-        transition: opacity 2s ease, transform 2s ease; /* Slow fade in */
+        transform: translateY(10px);
+        pointer-events: none; 
+        transition: all 1s ease;
+        display: none; /* Removed from layout initially */
       }
 
-      /* Class to trigger the fade in */
+      /* Active State for Button */
       #start-button.visible {
+        display: block;
         opacity: 1;
         transform: translateY(0);
-        pointer-events: auto; /* Now clickable */
+        pointer-events: auto;
       }
-      
-      #start-button:active {
-        transform: scale(0.95);
+
+      /* Message during permission check */
+      #status-msg {
+        color: #666;
+        font-size: 12px;
+        margin-top: 20px;
+        opacity: 0;
+        transition: opacity 0.5s;
       }
 
       /* --- AR & VIDEO FIXES --- */
@@ -85,8 +139,16 @@
   <body>
 
     <div id="splash-screen">
+      <div id="brand-header">THE WORKSHOP</div>
+
       <h1>The Butterfly Voyage</h1>
+      <div class="subtitle">Majd Kurdieh</div>
+
+      <div id="loader" class="loader"></div>
+
       <button id="start-button">Enter Experience</button>
+      
+      <p id="status-msg">Initializing...</p>
     </div>
 
     <a-scene 
@@ -117,33 +179,49 @@
       document.addEventListener("DOMContentLoaded", function() {
         const startButton = document.getElementById('start-button');
         const splashScreen = document.getElementById('splash-screen');
+        const loader = document.getElementById('loader');
+        const statusMsg = document.getElementById('status-msg');
         const sceneEl = document.querySelector('a-scene');
         const video = document.getElementById('painting-video');
         const target = document.querySelector('[mindar-image-target]');
 
-        // --- A. THE CINEMATIC DELAY ---
-        // Wait 3 seconds, then fade in the button
+        // --- STEP 1: CINEMATIC WAIT (3 Seconds) ---
         setTimeout(() => {
+          // Hide loader, show button
+          loader.style.display = 'none';
           startButton.classList.add('visible');
-        }, 3000); // 3000ms = 3 seconds
+          statusMsg.style.opacity = '0'; // Hide "Initializing"
+        }, 3000);
 
-        // --- B. THE START LOGIC ---
+        // --- STEP 2: USER CLICKS ENTER ---
         startButton.addEventListener('click', () => {
-          // Fade out splash
-          splashScreen.style.opacity = '0';
-          setTimeout(() => {
-            splashScreen.style.display = 'none';
-          }, 1000); // Wait 1s for the splash to fade fully
-
-          // Start AR (Requests Camera)
+          // CHANGE TEXT, BUT KEEP SPLASH SCREEN UP
+          // This prevents the "White Flash" while the popup is active
+          startButton.style.display = 'none';
+          statusMsg.innerText = "Please allow camera access...";
+          statusMsg.style.opacity = '1';
+          
+          // Start AR (Triggers Prompt)
           sceneEl.systems['mindar-image-system'].start();
         });
 
-        // --- C. VIDEO CONTROL ---
+        // --- STEP 3: CAMERA IS READY ---
+        // We listen for the AR system to be ready before removing the black screen
+        sceneEl.addEventListener("arReady", (event) => {
+           console.log("Camera is active. Fading splash...");
+           statusMsg.innerText = "Ready";
+           
+           // NOW we fade out the black screen
+           splashScreen.style.opacity = '0';
+           setTimeout(() => {
+             splashScreen.style.display = 'none';
+           }, 1500);
+        });
+
+        // --- VIDEO LOGIC ---
         target.addEventListener("targetFound", event => {
           if(video) video.play();
         });
-
         target.addEventListener("targetLost", event => {
           if(video) video.pause();
         });
