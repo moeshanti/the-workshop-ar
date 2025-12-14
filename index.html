@@ -2,157 +2,137 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>The Butterfly Voyage</title>
+    <title>The Workshop AR</title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      /* FIX 3: THE "UGLY WHITE BACKGROUND" KILLER */
+      /* Base Styles */
       html, body {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
         overflow: hidden;
-        font-family: 'Courier New', Courier, monospace; /* Artistic font */
-        background-color: #000000 !important; /* Force Black Background */
+        font-family: 'Montserrat', sans-serif; /* Modern Font */
+        background-color: black; /* Prevents white flash */
       }
 
-      /* --- SPLASH SCREEN STYLES --- */
+      /* --- SPLASH SCREEN (Modern & Sleek) --- */
       #splash-screen {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: #000000;
+        background-color: black;
         z-index: 99999;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        transition: opacity 1.5s ease-out; /* Slow elegant fade */
+        text-align: center;
+        transition: opacity 0.8s ease-out; /* Clean fade */
       }
 
-      /* FIX 1: THE WORKSHOP BRANDING */
-      #brand-header {
+      /* Branding Top */
+      .brand-top {
         position: absolute;
         top: 40px;
-        left: 0;
-        width: 100%;
-        text-align: center;
         color: white;
-        font-size: 14px;
+        font-size: 12px;
         letter-spacing: 4px;
-        font-weight: bold;
+        font-weight: 600;
         text-transform: uppercase;
-        opacity: 0.8;
+        opacity: 0.7;
       }
 
       /* Main Title */
       h1 {
         color: white; 
-        font-weight: 300; 
-        letter-spacing: 3px;
-        margin-bottom: 10px;
-        text-align: center;
-        font-size: 24px;
+        font-weight: 300; /* Light, elegant weight */
+        letter-spacing: 2px;
+        font-size: 28px;
+        margin-bottom: 5px;
+        text-transform: uppercase;
       }
 
-      /* Artist Name */
+      /* Subtitle / Artist */
       .subtitle {
-        color: #888;
-        font-size: 12px;
-        letter-spacing: 2px;
-        margin-bottom: 40px;
+        color: #aaaaaa;
+        font-size: 14px;
+        letter-spacing: 3px;
+        font-weight: 300;
+        margin-bottom: 50px;
         text-transform: uppercase;
       }
 
-      /* FIX 2: LOADING SPINNER (Visible before button) */
-      .loader {
-        width: 40px;
-        height: 40px;
-        border: 2px solid rgba(255,255,255,0.1);
-        border-top: 2px solid white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 20px;
-        /* Initially visible, hidden when button appears */
-        display: block; 
-      }
-
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-
-      /* THE ENTER BUTTON */
+      /* Enter Button (Modern Pill Shape) */
       #start-button {
-        padding: 18px 50px;
-        font-size: 16px;
+        padding: 16px 40px;
+        font-size: 14px;
         font-weight: 600;
-        text-transform: uppercase;
         letter-spacing: 2px;
-        border-radius: 50px;
-        border: 1px solid white;
+        text-transform: uppercase;
         background: white;
         color: black;
+        border: none;
+        border-radius: 50px;
         cursor: pointer;
-        
-        /* Start Hidden */
-        opacity: 0; 
+        opacity: 0; /* Hidden initially */
         transform: translateY(10px);
-        pointer-events: none; 
-        transition: all 1s ease;
-        display: none; /* Removed from layout initially */
+        transition: opacity 1s ease, transform 1s ease;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
       }
 
-      /* Active State for Button */
+      /* Active state for button */
       #start-button.visible {
-        display: block;
         opacity: 1;
         transform: translateY(0);
-        pointer-events: auto;
       }
 
-      /* Message during permission check */
-      #status-msg {
-        color: #666;
-        font-size: 12px;
-        margin-top: 20px;
-        opacity: 0;
-        transition: opacity 0.5s;
+      #start-button:active {
+        transform: scale(0.98);
+        opacity: 0.8;
       }
 
-      /* --- AR & VIDEO FIXES --- */
+      /* --- AR FIXES --- */
+      /* Fix video visibility */
       video {
         z-index: -10 !important; 
         display: block !important;
       }
-
+      /* Transparent Canvas */
       .a-canvas {
         background-color: transparent !important;
+      }
+      
+      /* Customize MindAR Scanning UI (Optional Tweaks) */
+      .mindar-ui-overlay {
+        font-family: 'Montserrat', sans-serif !important;
       }
     </style>
   </head>
   <body>
 
     <div id="splash-screen">
-      <div id="brand-header">THE WORKSHOP</div>
-
-      <h1>The Butterfly Voyage</h1>
-      <div class="subtitle">Majd Kurdieh</div>
-
-      <div id="loader" class="loader"></div>
-
-      <button id="start-button">Enter Experience</button>
+      <div class="brand-top">THE WORKSHOP</div>
       
-      <p id="status-msg">Initializing...</p>
+      <div>
+        <h1>The Butterfly Voyage</h1>
+        <div class="subtitle">Majd Kurdieh</div>
+      </div>
+
+      <button id="start-button">Enter Exhibition</button>
     </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: yes; uiScanning: yes;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights, alpha: true" 
       vr-mode-ui="enabled: false" 
@@ -179,50 +159,38 @@
       document.addEventListener("DOMContentLoaded", function() {
         const startButton = document.getElementById('start-button');
         const splashScreen = document.getElementById('splash-screen');
-        const loader = document.getElementById('loader');
-        const statusMsg = document.getElementById('status-msg');
         const sceneEl = document.querySelector('a-scene');
         const video = document.getElementById('painting-video');
         const target = document.querySelector('[mindar-image-target]');
 
-        // --- STEP 1: CINEMATIC WAIT (3 Seconds) ---
+        // 1. Cinematic Entry: Show button after 2 seconds
         setTimeout(() => {
-          // Hide loader, show button
-          loader.style.display = 'none';
           startButton.classList.add('visible');
-          statusMsg.style.opacity = '0'; // Hide "Initializing"
-        }, 3000);
+        }, 2000);
 
-        // --- STEP 2: USER CLICKS ENTER ---
+        // 2. Click Handler
         startButton.addEventListener('click', () => {
-          // CHANGE TEXT, BUT KEEP SPLASH SCREEN UP
-          // This prevents the "White Flash" while the popup is active
-          startButton.style.display = 'none';
-          statusMsg.innerText = "Please allow camera access...";
-          statusMsg.style.opacity = '1';
+          // A. Fade out splash immediately to prevent "stuck" screen
+          splashScreen.style.opacity = '0';
           
-          // Start AR (Triggers Prompt)
+          // B. Remove splash from DOM after fade (0.8s)
+          setTimeout(() => {
+            splashScreen.style.display = 'none';
+          }, 800);
+
+          // C. Start AR Engine
+          // This will trigger the Browser's "Allow Camera" prompt.
+          // Once allowed, MindAR's default "Scanning" UI will appear.
           sceneEl.systems['mindar-image-system'].start();
         });
 
-        // --- STEP 3: CAMERA IS READY ---
-        // We listen for the AR system to be ready before removing the black screen
-        sceneEl.addEventListener("arReady", (event) => {
-           console.log("Camera is active. Fading splash...");
-           statusMsg.innerText = "Ready";
-           
-           // NOW we fade out the black screen
-           splashScreen.style.opacity = '0';
-           setTimeout(() => {
-             splashScreen.style.display = 'none';
-           }, 1500);
-        });
-
-        // --- VIDEO LOGIC ---
+        // 3. Video Control
         target.addEventListener("targetFound", event => {
+          console.log("Target Found");
           if(video) video.play();
         });
         target.addEventListener("targetLost", event => {
+          console.log("Target Lost");
           if(video) video.pause();
         });
       });
