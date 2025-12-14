@@ -20,8 +20,7 @@
         height: 100%;
         overflow: hidden;
         font-family: 'Montserrat', sans-serif;
-        /* CRITICAL: Starts Black (to hide white flash), becomes Transparent via JS later */
-        background-color: black; 
+        background-color: black; /* Initially Black */
       }
 
       /* --- SPLASH SCREEN --- */
@@ -32,30 +31,29 @@
         width: 100%;
         height: 100%;
         background-color: black;
-        z-index: 99999; /* Highest Priority */
+        z-index: 99999; 
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         text-align: center;
-        transition: opacity 0.5s ease-out; /* Faster fade for snappier entry */
+        transition: opacity 0.5s ease-out;
       }
 
-      /* FIX: Prominent Branding */
+      /* Branding */
       .brand-top {
         position: absolute;
-        top: 60px; /* Lowered slightly */
+        top: 60px;
         color: white;
-        font-size: 20px; /* Much Larger */
-        letter-spacing: 8px; /* Very Wide Spacing */
-        font-weight: 900; /* Extra Bold */
+        font-size: 20px;
+        letter-spacing: 8px;
+        font-weight: 900;
         text-transform: uppercase;
-        border-bottom: 2px solid white; /* Thicker line */
+        border-bottom: 2px solid white;
         padding-bottom: 15px;
-        width: auto;
       }
 
-      /* Main Title */
+      /* Title */
       h1 {
         color: white; 
         font-weight: 300; 
@@ -76,7 +74,7 @@
         text-transform: uppercase;
       }
 
-      /* FIX: Button Text & Style */
+      /* Button */
       #start-button {
         padding: 20px 50px;
         font-size: 15px;
@@ -99,7 +97,7 @@
         transform: translateY(0);
       }
 
-      /* Custom Spinner */
+      /* Spinner */
       .custom-loader {
         display: none; 
         border: 4px solid rgba(255, 255, 255, 0.1);
@@ -116,13 +114,10 @@
         100% { transform: rotate(360deg); }
       }
 
-      /* --- AR VISIBILITY FIXES --- */
-      /* CRITICAL FIX: 
-         We do NOT force z-index: -10 anymore. 
-         We let MindAR handle placement, but ensure display is block.
-      */
+      /* --- AR & VIDEO VISIBILITY --- */
       video {
         display: block !important;
+        /* Note: We let MindAR manage Z-Index, usually -2 */
       }
       
       .a-canvas {
@@ -143,10 +138,11 @@
       <button id="start-button">ENTER THE EXPERIENCE</button>
       
       <div id="loading-spinner" class="custom-loader"></div>
+      <p id="status-text" style="color:#666; font-size:10px; margin-top:10px; opacity:0; transition:opacity 0.5s">Requesting Camera...</p>
     </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: no;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiScanning: yes; uiError: yes;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights, alpha: true" 
       vr-mode-ui="enabled: false" 
@@ -174,45 +170,56 @@
         const startButton = document.getElementById('start-button');
         const splashScreen = document.getElementById('splash-screen');
         const spinner = document.getElementById('loading-spinner');
+        const statusText = document.getElementById('status-text');
         const sceneEl = document.querySelector('a-scene');
         const video = document.getElementById('painting-video');
         const target = document.querySelector('[mindar-image-target]');
 
-        // 1. Reveal Button (Cinematic Delay)
+        // 1. Reveal Button
         setTimeout(() => {
           startButton.classList.add('visible');
         }, 2000);
 
-        // 2. Button Click Handler
+        // 2. Click Handler (The Fix)
         startButton.addEventListener('click', () => {
-          // Hide Button, Show Spinner
+          // A. Update UI
           startButton.style.display = 'none';
           spinner.style.display = 'block';
+          statusText.style.opacity = '1';
 
-          // Start AR Engine (Triggers Permission Prompt)
+          // B. Start AR
           sceneEl.systems['mindar-image-system'].start();
+
+          // C. THE UNCONDITIONAL EXIT (3.5 Seconds)
+          // We do not wait for "arReady". We simply force the screen open.
+          setTimeout(() => {
+            console.log("Timer complete. Forcing splash removal.");
+            forceEnterApp();
+          }, 3500); 
         });
 
-        // 3. THE "BLACK SCREEN" FIX
-        // We wait for the AR system to be ready (Camera active).
-        sceneEl.addEventListener("arReady", (event) => {
-           console.log("AR Ready. Revealing Camera...");
-           
-           // A. Fade out the Splash Screen
+        // Function to clean up splash and reveal camera
+        function forceEnterApp() {
+           // 1. Fade out splash
            splashScreen.style.opacity = '0';
 
-           // B. CRITICAL: Set the body background to transparent.
-           // This ensures the camera video (which sits behind the body) is visible.
+           // 2. CRITICAL: Make Body Transparent so video shows through
            document.body.style.backgroundColor = 'transparent';
            document.documentElement.style.backgroundColor = 'transparent';
 
-           // C. Remove Splash from layout after fade
+           // 3. Remove Splash from DOM
            setTimeout(() => {
              splashScreen.style.display = 'none';
            }, 500);
+        }
+
+        // 3. Optional: If AR is ready *faster* than 3.5s, enter immediately
+        sceneEl.addEventListener("arReady", (event) => {
+           console.log("AR Ready early. Entering...");
+           forceEnterApp();
         });
 
-        // 4. Video Playback Control
+        // 4. Video Control
         target.addEventListener("targetFound", event => {
           if(video) video.play();
         });
