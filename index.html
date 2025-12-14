@@ -4,55 +4,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>The Workshop AR</title>
     
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-      body { margin: 0; overflow: hidden; font-family: 'Montserrat', sans-serif; background: black; }
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: 'Montserrat', sans-serif;
+        background: black;
+      }
 
-      /* --- 1. SPLASH SCREEN --- */
+      /* --- SPLASH SCREEN (Z-Index High to cover everything) --- */
       #splash-screen {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background-color: black; z-index: 99999;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: black;
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         text-align: center;
       }
-      .brand-top { color: white; font-size: 20px; letter-spacing: 8px; font-weight: 900; border-bottom: 2px solid white; padding-bottom: 15px; margin-bottom: 40px;}
-      h1 { color: white; font-weight: 300; letter-spacing: 2px; font-size: 24px; margin: 0; }
-      .subtitle { color: #aaaaaa; font-size: 12px; letter-spacing: 3px; margin-top: 10px; margin-bottom: 60px; }
+
+      .brand-top { color: white; font-size: 20px; letter-spacing: 8px; font-weight: 900; border-bottom: 2px solid white; padding-bottom: 15px; margin-bottom: 30px; }
+      h1 { color: white; font-weight: 300; letter-spacing: 2px; font-size: 24px; }
+      .subtitle { color: #aaaaaa; font-size: 12px; letter-spacing: 3px; margin-top: 10px; margin-bottom: 50px; }
+      
       #start-button {
-        padding: 18px 40px; font-size: 14px; font-weight: 700; letter-spacing: 2px;
-        background: white; color: black; border: none; border-radius: 50px; cursor: pointer;
+        padding: 18px 45px;
+        background: white;
+        color: black;
+        border: none;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 2px;
+        cursor: pointer;
+        text-transform: uppercase;
       }
 
-      /* --- 2. AR UI (Stars & WhatsApp) --- */
-      /* Hidden until target is found */
-      #ar-ui {
-        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-        width: 90%; max-width: 400px;
-        background: rgba(20, 20, 20, 0.9);
-        border-radius: 20px; padding: 20px;
-        display: none; /* Hidden by default */
+      /* --- AR INTERFACE (Stars & WhatsApp) --- */
+      /* Hidden by default, appears when target is found */
+      #ar-overlay {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 350px;
+        background: rgba(10, 10, 10, 0.95);
+        padding: 20px;
+        border-radius: 15px;
         z-index: 10000;
-        text-align: center; border: 1px solid rgba(255,255,255,0.1);
-      }
-      .ui-title { color: white; font-size: 18px; margin-bottom: 5px; }
-      .stars { color: #FFD700; font-size: 24px; margin: 10px 0; letter-spacing: 5px; }
-      .whatsapp-btn {
-        display: block; width: 100%; padding: 15px 0;
-        background: white; color: black; font-weight: bold;
-        text-decoration: none; border-radius: 10px; margin-top: 10px;
-        text-transform: uppercase; letter-spacing: 1px;
+        display: none; /* Hidden initially */
+        border: 1px solid #333;
+        text-align: center;
       }
 
-      /* --- 3. MINDAR OVERRIDES --- */
-      /* Critical: Hide the 'Failed to Launch' error */
-      .mindar-ui-error { display: none !important; }
-      /* Ensure scanning UI is visible */
-      .mindar-ui-overlay { z-index: 5000 !important; }
+      .card-title { color: white; font-size: 18px; margin-bottom: 5px; }
+      .card-artist { color: #888; font-size: 12px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+      .stars { color: #FFD700; font-size: 24px; margin-bottom: 15px; cursor: pointer; }
+      
+      .inquire-btn {
+        display: block;
+        width: 100%;
+        padding: 15px 0;
+        background: white;
+        color: black;
+        text-decoration: none;
+        font-weight: bold;
+        border-radius: 8px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 14px;
+      }
+      
+      .close-btn {
+        position: absolute; top: 10px; right: 15px; color: #666; font-size: 20px; cursor: pointer;
+      }
+
+      /* --- MINDAR FIXES --- */
+      .mindar-ui-error { display: none !important; } /* Hide Compatibility Error */
+      .mindar-ui-overlay { z-index: 5000 !important; } /* Ensure Scanning UI is visible */
     </style>
   </head>
   <body>
@@ -64,10 +106,14 @@
       <button id="start-button">ENTER THE EXPERIENCE</button>
     </div>
 
-    <div id="ar-ui">
-      <div class="ui-title">The Butterfly Voyage</div>
-      <div class="stars">★★★★★</div>
-      <a href="https://wa.me/971501234567?text=I%20am%20interested%20in%20The%20Butterfly%20Voyage" class="whatsapp-btn">
+    <div id="ar-overlay">
+      <div class="close-btn" onclick="document.getElementById('ar-overlay').style.display='none'">×</div>
+      <div class="card-title">The Butterfly Voyage</div>
+      <div class="card-artist">Majd Kurdieh</div>
+      <div class="stars" id="star-rating">★★★★★</div>
+      <div id="rating-msg" style="color: #4CAF50; font-size: 12px; display: none; margin-bottom: 10px;">Rating Saved!</div>
+      
+      <a href="https://wa.me/971501234567?text=I%20am%20interested%20in%20buying%20The%20Butterfly%20Voyage%20(AED%2015,000)" class="inquire-btn">
         Inquire (AED 15,000)
       </a>
     </div>
@@ -87,41 +133,50 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-entity gltf-model="#foxModel" rotation="0 0 0" position="-0.2 -0.2 0" scale="0.05 0.05 0.05" 
-                  animation="property: position; to: -0.2 0.1 0; dur: 2000; easing: easeInOutSine; loop: true; dir: alternate">
-        </a-entity>
-        
-        <a-entity gltf-model="#bearModel" rotation="0 0 0" position="0.2 -0.2 0" scale="0.05 0.05 0.05" 
-                  animation="property: position; to: 0.2 0.1 0; dur: 2500; easing: easeInOutSine; loop: true; dir: alternate">
-        </a-entity>
+        <a-entity gltf-model="#foxModel" rotation="0 0 0" position="-0.1 -0.25 0" scale="0.05 0.05 0.05" 
+                  animation="property: position; to: -0.1 0.05 0; dur: 2000; easing: easeInOutSine; loop: true; dir: alternate"></a-entity>
+        <a-entity gltf-model="#bearModel" rotation="0 0 0" position="0.1 -0.25 0" scale="0.05 0.05 0.05" 
+                  animation="property: position; to: 0.1 0.05 0; dur: 2200; easing: easeInOutSine; loop: true; dir: alternate"></a-entity>
       </a-entity>
     </a-scene>
 
     <script>
       const startButton = document.getElementById('start-button');
       const splashScreen = document.getElementById('splash-screen');
-      const arUi = document.getElementById('ar-ui');
+      const arOverlay = document.getElementById('ar-overlay');
       const sceneEl = document.querySelector('a-scene');
       const target = document.querySelector('[mindar-image-target]');
+      const stars = document.getElementById('star-rating');
+      const ratingMsg = document.getElementById('rating-msg');
 
-      // 1. CLICK TO START
+      // 1. Start Experience
       startButton.addEventListener('click', () => {
-        // INSTANTLY REMOVE SPLASH to prevent conflicts
+        // Remove Splash Screen ENTIRELY
         splashScreen.remove();
-        // START AR
+        
+        // Start AR System
         sceneEl.systems['mindar-image-system'].start();
       });
 
-      // 2. TARGET FOUND (Show UI + Models appear automatically)
+      // 2. Target Found (Show UI & Models)
       target.addEventListener("targetFound", event => {
-        console.log("Painting Found!");
-        arUi.style.display = 'block'; // Show Stars/WhatsApp
+        console.log("Target Found");
+        // Wait 2 seconds before showing the Inquiry UI (The "Wow" factor delay)
+        setTimeout(() => {
+          arOverlay.style.display = 'block';
+        }, 2000);
       });
 
-      // 3. TARGET LOST
+      // 3. Target Lost
       target.addEventListener("targetLost", event => {
-        console.log("Painting Lost");
-        arUi.style.display = 'none'; // Hide UI
+        console.log("Target Lost");
+        arOverlay.style.display = 'none';
+      });
+
+      // 4. Star Rating Logic
+      stars.addEventListener('click', () => {
+        ratingMsg.style.display = 'block';
+        setTimeout(() => { ratingMsg.style.display = 'none'; }, 2000);
       });
     </script>
   </body>
