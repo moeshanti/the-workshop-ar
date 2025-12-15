@@ -172,7 +172,6 @@
 
     function startExperience() {
         if (isStoryMode) return; 
-
         document.getElementById('scan-guide').classList.add('opacity-0');
         if(!isCardOpen) {
             animationTimer = setTimeout(() => {
@@ -205,13 +204,15 @@
         const endScreen = document.getElementById('video-end-screen');
         const mainBtn = document.getElementById('btn-main-action');
         
-        // DYNAMIC BUTTON LOGIC
+        // Reset Button Text
+        const shareBtnText = document.getElementById('share-btn-text');
+        if(shareBtnText) shareBtnText.innerText = "SHARE STORY";
+
+        // DYNAMIC BUTTON LOGIC (Cold vs Warm)
         if (isStoryMode) {
-            // Cold Lead: Wants to visit
             mainBtn.innerText = "✨ EXPERIENCE THE MAGIC";
             mainBtn.onclick = goToVisit;
         } else {
-            // Warm Lead: Wants to return to AR
             mainBtn.innerText = "✨ RETURN TO MAGIC";
             mainBtn.onclick = closeStory;
         }
@@ -225,6 +226,7 @@
         video.play();
         video.muted = false; 
 
+        // Animation Trigger
         video.onended = () => {
             endScreen.classList.remove('hidden');
             endScreen.classList.add('flex');
@@ -234,10 +236,8 @@
     function replayStory() {
         const video = document.getElementById('story-video');
         const endScreen = document.getElementById('video-end-screen');
-        
         endScreen.classList.add('hidden');
         endScreen.classList.remove('flex');
-        
         video.currentTime = 0;
         video.play();
     }
@@ -255,7 +255,6 @@
         const video = document.getElementById('story-video');
         video.pause();
         modal.style.display = 'none';
-        
         if(isStoryMode) {
             document.getElementById('visit-cta').style.display = 'flex';
         }
@@ -264,19 +263,58 @@
     function openCatalog() { window.open(ARTWORK_DATA.catalogUrl, '_blank'); }
     function openWebsite() { window.open(ARTWORK_DATA.websiteUrl, '_blank'); }
 
-    async function shareApp() {
+    // --- SMART SHARE LOGIC ---
+    async function shareVideoFile() {
+        const btnText = document.getElementById('share-btn-text');
+        const originalText = btnText.innerText;
+        
+        // Define Caption
+        const shareTitle = 'The Butterfly Voyage at The Workshop';
+        const shareText = 'Witness the magic of Majd Kurdieh come to life! ✨🦋 \n\n#TheWorkshopDubai #ARArt #MajdKurdieh';
+        
+        // Loading State
+        btnText.innerText = "PREPARING VIDEO...";
+        
+        try {
+            // 1. Copy text to clipboard
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(shareText);
+                alert("Caption copied! Paste it in Instagram/TikTok."); 
+            }
+
+            // 2. Fetch video file
+            const response = await fetch('./assets/story.mp4');
+            const blob = await response.blob();
+            const file = new File([blob], 'story.mp4', { type: 'video/mp4' });
+
+            // 3. Share File
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: shareTitle,
+                    text: shareText
+                });
+            } else {
+                alert("Sharing not supported. Video saved to clipboard/device.");
+            }
+        } catch (error) {
+            console.error("Share failed:", error);
+            shareAppLinkFallback(); 
+        } finally {
+            btnText.innerText = originalText;
+        }
+    }
+
+    async function shareAppLinkFallback() {
         const baseUrl = window.location.href.split('?')[0];
         const deepLink = `${baseUrl}?view=story`;
-        const shareData = {
-            title: 'The Workshop: The Butterfly Voyage',
-            text: 'Watch the story behind this painting by Majd Kurdieh.',
-            url: deepLink 
-        };
         if (navigator.share) {
-            try { await navigator.share(shareData); } 
-            catch (err) { console.log('Share failed', err); }
+            await navigator.share({
+                title: 'The Workshop',
+                url: deepLink
+            });
         } else {
-            alert("Link copied! " + deepLink);
+            alert("Link copied: " + deepLink);
         }
     }
 
@@ -318,8 +356,8 @@
               ...
           </button>
 
-          <button onclick="shareApp()" class="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-full font-bold tracking-widest interactive active:scale-95 animate-fade-up delay-300">
-              <span>SHARE STORY</span>
+          <button onclick="shareVideoFile()" class="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-full font-bold tracking-widest interactive active:scale-95 animate-fade-up delay-300">
+              <span id="share-btn-text">SHARE STORY</span>
           </button>
 
           <button onclick="replayStory()" class="text-white/70 hover:text-white mt-4 flex items-center gap-2 interactive animate-fade-up delay-500">
@@ -359,34 +397,26 @@
   </a-scene>
 
   <div id="ui-layer" class="flex flex-col justify-between p-6 pb-10">
-    
     <div class="flex justify-between items-start w-full">
         <h1 class="text-white font-bold tracking-widest text-lg uppercase drop-shadow-md">The Workshop</h1>
     </div>
-
     <div id="scan-guide" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-500">
         <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative">
             <p class="absolute -bottom-10 w-full text-center text-white/80 font-light tracking-widest text-sm uppercase">Align Artwork</p>
         </div>
     </div>
-
     <div id="info-card" class="interactive bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out relative">
-        
         <button id="btn-close" onclick="window.closeCard(event)" ontouchstart="window.closeCard(event)" class="interactive absolute top-4 right-4 bg-black/40 w-10 h-10 rounded-full flex items-center justify-center text-white z-50 shadow-md border border-white/20" style="pointer-events: auto !important; cursor: pointer;">✕</button>
-
         <div class="mb-4">
            <h2 id="lbl-title" class="text-2xl font-light mb-1">...</h2>
            <p id="lbl-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">...</p>
         </div>
-        
         <button onclick="watchStory()" class="w-full border border-white/30 bg-white/5 text-white py-2 rounded-lg mb-2 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
             <span>▶ WATCH STORY</span>
         </button>
-        
         <button onclick="openCatalog()" class="w-full border border-white/30 bg-white/5 text-white py-2 rounded-lg mb-4 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
             <span>THE WHOLE CATALOG</span>
         </button>
-
         <div class="flex flex-col items-center mb-6">
             <div class="flex gap-2">
                 <button id="star-1" onclick="submitRating(1)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
@@ -397,12 +427,10 @@
             </div>
             <p id="feedback" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Rating Saved!</p>
         </div>
-
         <button id="btn-inquire" class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
             <span id="btn-text">Inquire</span>
         </button>
     </div>
   </div>
-
 </body>
 </html>
