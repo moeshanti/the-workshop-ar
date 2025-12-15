@@ -268,26 +268,31 @@
         const btnText = document.getElementById('share-btn-text');
         const originalText = btnText.innerText;
         
-        // Define Caption
-        const shareTitle = 'The Butterfly Voyage at The Workshop';
-        const shareText = 'Witness the magic of Majd Kurdieh come to life! ✨🦋 \n\n#TheWorkshopDubai #ARArt #MajdKurdieh';
+        // 1. GENERATE DEEP LINK
+        const baseUrl = window.location.href.split('?')[0];
+        const deepLink = `${baseUrl}?view=story`;
         
-        // Loading State
+        // 2. DEFINE TEXT WITH LINK
+        const shareTitle = 'The Butterfly Voyage at The Workshop';
+        // \n is a new line
+        const shareText = `Witness the magic of Majd Kurdieh come to life! ✨🦋 \n\nTry it yourself here: ${deepLink} \n\n#TheWorkshopDubai #ARArt #MajdKurdieh`;
+        
+        // 3. SHOW LOADING
         btnText.innerText = "PREPARING VIDEO...";
         
         try {
-            // 1. Copy text to clipboard
+            // 4. COPY TO CLIPBOARD
             if (navigator.clipboard) {
                 await navigator.clipboard.writeText(shareText);
-                alert("Caption copied! Paste it in Instagram/TikTok."); 
+                alert("Caption & Link copied! Paste it in Instagram/TikTok."); 
             }
 
-            // 2. Fetch video file
+            // 5. FETCH VIDEO
             const response = await fetch('./assets/story.mp4');
             const blob = await response.blob();
             const file = new File([blob], 'story.mp4', { type: 'video/mp4' });
 
-            // 3. Share File
+            // 6. SHARE FILE
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 await navigator.share({
                     files: [file],
@@ -299,6 +304,7 @@
             }
         } catch (error) {
             console.error("Share failed:", error);
+            // Fallback: Share just the link if file fails
             shareAppLinkFallback(); 
         } finally {
             btnText.innerText = originalText;
