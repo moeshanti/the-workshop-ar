@@ -1,442 +1,558 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>The Workshop | AR Companion</title>
-  
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Fann À Porter | AR Companion</title>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCg7B8tiS2_Kn_Ktl07SqA7NKBc_O7Rb3U",
-      authDomain: "the-workshop-ar.firebaseapp.com",
-      projectId: "the-workshop-ar",
-      storageBucket: "the-workshop-ar.firebasestorage.app",
-      messagingSenderId: "12749243592",
-      appId: "1:12749243592:web:ea3341aa65354acdd051fd"
-    };
+    <!-- Firebase Integration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    let db;
-    try {
-      const app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-    } catch(e) { console.error("Firebase Init Error", e); }
-
-    window.submitRating = async (stars) => {
-      for(let i=1; i<=5; i++) {
-        const star = document.getElementById(`star-${i}`);
-        if(i <= stars) star.classList.add('text-yellow-400');
-        else star.classList.remove('text-yellow-400');
-      }
-      if(db) {
-         try {
-           await addDoc(collection(db, "ratings"), {
-             painting: "The Butterfly Voyage",
-             stars: stars,
-             timestamp: serverTimestamp()
-           });
-           document.getElementById('feedback').classList.remove('opacity-0');
-         } catch(e) { alert("Save Error: " + e.message); }
-      }
-    }
-  </script>
-
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
-  <style>
-    /* 1. INITIAL STATE */
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: black; }
-
-    /* 2. SPLASH SCREEN */
-    #splash-screen {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: black; z-index: 99999;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        transition: opacity 1s ease-out;
-    }
-
-    /* 3. AR VIDEO LAYER */
-    video {
-        position: absolute !important; top: 50% !important; left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        min-width: 100vw !important; min-height: 100vh !important;
-        width: auto !important; height: auto !important;
-        object-fit: cover !important; z-index: -10 !important;
-    }
-
-    .a-canvas {
-        width: 100% !important; height: 100% !important;
-        position: absolute !important; top: 0 !important; left: 0 !important;
-        z-index: 1 !important; background: transparent !important;
-    }
-
-    #ui-layer {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        z-index: 50; pointer-events: none; 
-    }
-    
-    /* 4. MODALS */
-    .modal-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: black; z-index: 60; 
-        display: none; flex-direction: column; align-items: center; justify-content: center;
-    }
-
-    .interactive { pointer-events: auto !important; cursor: pointer; }
-
-    /* 5. ANIMATIONS */
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .animate-fade-up {
-        opacity: 0; 
-        animation: fadeInUp 0.6s ease-out forwards;
-    }
-    
-    .delay-100 { animation-delay: 0.1s; }
-    .delay-300 { animation-delay: 0.3s; }
-    .delay-500 { animation-delay: 0.5s; }
-
-  </style>
-
-  <script>
-    const ARTWORK_DATA = {
-        title: "The Butterfly Voyage",
-        artist: "Majd Kurdieh",
-        currency: "AED",
-        price: "15,000",
-        whatsappNumber: "971559522980",
-        animationDuration: 8000,
-        catalogUrl: "https://privateviews.artlogic.net/fannaporter/b6c586b47457fbeaa95a60?inc_prices=1&s=c57d462e0fec509dfb6cc8248109815a95adfffd0b5566b75ad8462e166e31b17894da30585cb2eaf1b96b0c473bd33342dda34739d6f472ee80c9966b41a6fe",
-        websiteUrl: "https://www.theworkshopdubai.com/"
-    };
-
-    let isCardOpen = false;
-    let animationTimer = null;
-    let isStoryMode = false; 
-
-    // --- LOGIC: DETECT SHARED LINKS ---
-    function checkUrlParams() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('view') === 'story') {
-            isStoryMode = true;
-            console.log("Story Mode Active: Disabling AR");
-            const scene = document.querySelector('a-scene');
-            if(scene) scene.remove();
-
-            const btn = document.getElementById('btn-enter');
-            btn.innerText = "WATCH STORY";
-            btn.onclick = enterStoryMode;
-            btn.ontouchstart = enterStoryMode;
-        }
-    }
-
-    // --- STANDARD ENTRY ---
-    function enterExperience() {
-        const splash = document.getElementById('splash-screen');
-        splash.style.opacity = '0';
-        document.body.style.backgroundColor = 'transparent';
-        setTimeout(() => { splash.style.display = 'none'; }, 1000);
-    }
-
-    // --- SHARED ENTRY ---
-    function enterStoryMode() {
-        document.getElementById('scan-guide').style.display = 'none';
-        const splash = document.getElementById('splash-screen');
-        splash.style.opacity = '0';
-        setTimeout(() => { 
-            splash.style.display = 'none'; 
-            watchStory(); 
-        }, 1000);
-    }
-
-    function updateUI() {
-        document.getElementById('lbl-title').innerText = ARTWORK_DATA.title;
-        document.getElementById('lbl-artist').innerText = ARTWORK_DATA.artist;
-        document.getElementById('btn-text').innerText = `Inquire (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price})`;
-
-        const message = `Hi! I am interested in the painting "${ARTWORK_DATA.title}" by ${ARTWORK_DATA.artist} (${ARTWORK_DATA.currency} ${ARTWORK_DATA.price}). Is it available?`;
-        const url = `https://wa.me/${ARTWORK_DATA.whatsappNumber}?text=${encodeURIComponent(message)}`;
-        
-        const btn = document.getElementById('btn-inquire');
-        btn.onclick = () => window.open(url, '_blank');
-        btn.ontouchstart = () => window.open(url, '_blank');
-    }
-
-    function startExperience() {
-        if (isStoryMode) return; 
-        document.getElementById('scan-guide').classList.add('opacity-0');
-        if(!isCardOpen) {
-            animationTimer = setTimeout(() => {
-                openCard();
-            }, ARTWORK_DATA.animationDuration);
-        }
-    }
-
-    function openCard() {
-        if(isCardOpen) return;
-        isCardOpen = true;
-        const card = document.getElementById('info-card');
-        card.classList.remove('translate-y-full'); 
-        card.classList.add('translate-y-0');
-    }
-
-    function closeCard(e) {
-        if(e) { e.preventDefault(); e.stopPropagation(); }
-        isCardOpen = false;
-        const card = document.getElementById('info-card');
-        card.classList.add('translate-y-full');
-        card.classList.remove('translate-y-0');
-    }
-    window.closeCard = closeCard;
-
-    // --- VIDEO STORY LOGIC ---
-    function watchStory() {
-        const modal = document.getElementById('video-modal');
-        const video = document.getElementById('story-video');
-        const endScreen = document.getElementById('video-end-screen');
-        const mainBtn = document.getElementById('btn-main-action');
-        
-        // Reset Button Text
-        const shareBtnText = document.getElementById('share-btn-text');
-        if(shareBtnText) shareBtnText.innerText = "SHARE STORY";
-
-        // DYNAMIC BUTTON LOGIC (Cold vs Warm)
-        if (isStoryMode) {
-            mainBtn.innerText = "✨ EXPERIENCE THE MAGIC";
-            mainBtn.onclick = goToVisit;
-        } else {
-            mainBtn.innerText = "✨ RETURN TO MAGIC";
-            mainBtn.onclick = closeStory;
-        }
-
-        // Reset state
-        endScreen.classList.add('hidden'); 
-        endScreen.classList.remove('flex');
-        
-        modal.style.display = 'flex';
-        video.currentTime = 0;
-        video.play();
-        video.muted = false; 
-
-        // Animation Trigger
-        video.onended = () => {
-            endScreen.classList.remove('hidden');
-            endScreen.classList.add('flex');
+        const firebaseConfig = {
+            apiKey: "AIzaSyCg7B8tiS2_Kn_Ktl07SqA7NKBc_O7Rb3U",
+            authDomain: "the-workshop-ar.firebaseapp.com",
+            projectId: "the-workshop-ar",
+            storageBucket: "the-workshop-ar.firebasestorage.app",
+            messagingSenderId: "12749243592",
+            appId: "1:12749243592:web:ea3341aa65354acdd051fd"
         };
-    }
 
-    function replayStory() {
-        const video = document.getElementById('story-video');
-        const endScreen = document.getElementById('video-end-screen');
-        endScreen.classList.add('hidden');
-        endScreen.classList.remove('flex');
-        video.currentTime = 0;
-        video.play();
-    }
-
-    function goToVisit() {
-        const modal = document.getElementById('video-modal');
-        const video = document.getElementById('story-video');
-        video.pause();
-        modal.style.display = 'none';
-        document.getElementById('visit-cta').style.display = 'flex';
-    }
-
-    function closeStory() {
-        const modal = document.getElementById('video-modal');
-        const video = document.getElementById('story-video');
-        video.pause();
-        modal.style.display = 'none';
-        if(isStoryMode) {
-            document.getElementById('visit-cta').style.display = 'flex';
-        }
-    }
-    
-    function openCatalog() { window.open(ARTWORK_DATA.catalogUrl, '_blank'); }
-    function openWebsite() { window.open(ARTWORK_DATA.websiteUrl, '_blank'); }
-
-    // --- SMART SHARE LOGIC ---
-    async function shareVideoFile() {
-        const btnText = document.getElementById('share-btn-text');
-        const originalText = btnText.innerText;
-        
-        // 1. GENERATE DEEP LINK
-        const baseUrl = window.location.href.split('?')[0];
-        const deepLink = `${baseUrl}?view=story`;
-        
-        // 2. DEFINE TEXT WITH LINK
-        const shareTitle = 'The Butterfly Voyage at The Workshop';
-        // \n is a new line
-        const shareText = `Witness the magic of Majd Kurdieh come to life! ✨🦋 \n\nTry it yourself here: ${deepLink} \n\n#TheWorkshopDubai #ARArt #MajdKurdieh`;
-        
-        // 3. SHOW LOADING
-        btnText.innerText = "PREPARING VIDEO...";
-        
+        let db;
         try {
-            // 4. COPY TO CLIPBOARD
-            if (navigator.clipboard) {
-                await navigator.clipboard.writeText(shareText);
-                alert("Caption & Link copied! Paste it in Instagram/TikTok."); 
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+        } catch (e) { console.error("Firebase Init Error", e); }
+
+        window.submitRating = async (stars) => {
+            // Get current painting data for context
+            const currentPaintingTitle = window.ARTWORK_DATA[window.currentArtworkIndex || 0].title;
+
+            for (let i = 1; i <= 5; i++) {
+                const star = document.getElementById(`star-${i}`);
+                if (i <= stars) star.classList.add('text-yellow-400');
+                else star.classList.remove('text-yellow-400');
             }
 
-            // 5. FETCH VIDEO
-            const response = await fetch('./assets/story.mp4');
-            const blob = await response.blob();
-            const file = new File([blob], 'story.mp4', { type: 'video/mp4' });
-
-            // 6. SHARE FILE
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: shareTitle,
-                    text: shareText
-                });
-            } else {
-                alert("Sharing not supported. Video saved to clipboard/device.");
+            if (db) {
+                try {
+                    await addDoc(collection(db, "ratings"), {
+                        painting: currentPaintingTitle,
+                        stars: stars,
+                        timestamp: serverTimestamp()
+                    });
+                    document.getElementById('feedback').classList.remove('opacity-0');
+                    setTimeout(() => {
+                        document.getElementById('feedback').classList.add('opacity-0');
+                    }, 3000);
+                } catch (e) { alert("Save Error: " + e.message); }
             }
-        } catch (error) {
-            console.error("Share failed:", error);
-            // Fallback: Share just the link if file fails
-            shareAppLinkFallback(); 
-        } finally {
-            btnText.innerText = originalText;
         }
-    }
+    </script>
 
-    async function shareAppLinkFallback() {
-        const baseUrl = window.location.href.split('?')[0];
-        const deepLink = `${baseUrl}?view=story`;
-        if (navigator.share) {
-            await navigator.share({
-                title: 'The Workshop',
-                url: deepLink
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+        /* 1. INITIAL STATE */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: black;
+        }
+
+        /* 2. SPLASH SCREEN */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1s ease-out;
+        }
+
+        /* 3. AR LAYER */
+        .a-canvas {
+            width: 100% !important;
+            height: 100% !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: 1 !important;
+            background: transparent !important;
+        }
+
+        #ui-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        /* 4. MODALS */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 60;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .interactive {
+            pointer-events: auto !important;
+            cursor: pointer;
+        }
+
+        /* 5. ANIMATIONS */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-up {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .delay-100 {
+            animation-delay: 0.1s;
+        }
+
+        .delay-300 {
+            animation-delay: 0.3s;
+        }
+
+        .delay-500 {
+            animation-delay: 0.5s;
+        }
+    </style>
+
+    <script>
+        // --- 1. DATA SOURCE OF TRUTH ---
+        window.ARTWORK_DATA = [
+            {
+                // Object 0: Butterfly Voyage
+                title: "The Butterfly Voyage",
+                artist: "Majd Kurdieh",
+                price: "AED 15,000",
+                video: "./assets/story.mp4",
+                shareCaption: "Witness the magic of Majd Kurdieh come to life! ✨🦋 #FannAPorter #ARArt",
+                whatsappNumber: "971559522980",
+                catalogUrl: "https://privateviews.artlogic.net/fannaporter/b6c586b47457fbeaa95a60?inc_prices=1&s=c57d462e0fec509dfb6cc8248109815a95adfffd0b5566b75ad8462e166e31b17894da30585cb2eaf1b96b0c473bd33342dda34739d6f472ee80c9966b41a6fe",
+                websiteUrl: "https://www.theworkshopdubai.com/"
+            },
+            {
+                // Object 1: Two Skies
+                title: "Two Skies",
+                artist: "Majd Kurdieh",
+                price: "Inquire",
+                video: "./assets/story2.mp4",
+                shareCaption: "Witness 'Two Skies' by Majd Kurdieh come to life! ✨☁️ #FannAPorter #MajdKurdieh #TwoSkies",
+                whatsappNumber: "971559522980",
+                catalogUrl: "https://www.theworkshopdubai.com/",
+                websiteUrl: "https://www.theworkshopdubai.com/"
+            }
+        ];
+
+        window.currentArtworkIndex = 0; // Default to first
+        let isCardOpen = false;
+        let isStoryMode = false;
+
+        // --- SHARED / DEEP LINK ENTRY ---
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('view') === 'story') {
+                isStoryMode = true;
+                console.log("Story Mode Active: Disabling AR");
+                const scene = document.querySelector('a-scene');
+                if (scene) scene.remove();
+
+                const btn = document.getElementById('btn-enter');
+                btn.innerText = "WATCH STORY";
+                btn.onclick = enterStoryMode;
+                btn.ontouchstart = enterStoryMode;
+
+                // If specific painting shared (optional future logic), default to 0 for now
+            }
+        }
+
+        // --- ENTRY POINTS ---
+        function enterExperience() {
+            const splash = document.getElementById('splash-screen');
+            splash.style.opacity = '0';
+            document.body.style.backgroundColor = 'transparent';
+            setTimeout(() => { splash.style.display = 'none'; }, 1000);
+        }
+
+        function enterStoryMode() {
+            document.getElementById('scan-guide').style.display = 'none';
+            const splash = document.getElementById('splash-screen');
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                watchStory(); // Watches current default
+            }, 1000);
+        }
+
+        // --- AR TARGET LOGIC ---
+        function onTargetFound(index) {
+            console.log("Target Found: " + index);
+            window.currentArtworkIndex = index;
+
+            // 1. Update UI Data
+            updateUI(index);
+
+            // 2. Stop Other Media (If we had competing AR audio)
+            // Currently we only have one set of logic, but this ensures state is clean
+
+            // 3. UI Interactions
+            document.getElementById('scan-guide').classList.add('opacity-0');
+
+            // Auto-open info card after delay
+            if (!isCardOpen) {
+                // Cancel any pending timers from previous scans
+                if (window.cardTimer) clearTimeout(window.cardTimer);
+
+                window.cardTimer = setTimeout(() => {
+                    openCard();
+                }, 5000); // 5 seconds delay
+            }
+        }
+
+        function onTargetLost(index) {
+            console.log("Target Lost: " + index);
+            // Optional: Pause logic if needed
+        }
+
+        function updateUI(index) {
+            const data = window.ARTWORK_DATA[index];
+
+            // Labels
+            document.getElementById('lbl-title').innerText = data.title;
+            document.getElementById('lbl-artist').innerText = data.artist || "Fann À Porter";
+
+            // Buttons
+            const priceText = data.price === "Inquire" ? "Inquire" : `Inquire (${data.price})`;
+            document.getElementById('btn-text').innerText = priceText;
+
+            // Whatsapp logic
+            const message = `Hi! I am interested in the painting "${data.title}" (${data.price}). Is it available?`;
+            const url = `https://wa.me/${data.whatsappNumber}?text=${encodeURIComponent(message)}`;
+
+            const btn = document.getElementById('btn-inquire');
+            btn.onclick = () => window.open(url, '_blank');
+            btn.ontouchstart = () => window.open(url, '_blank');
+
+            // Reset Stars
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`star-${i}`).classList.remove('text-yellow-400');
+            }
+        }
+
+        // --- CARD LOGIC ---
+        function openCard() {
+            if (isCardOpen) return;
+            isCardOpen = true;
+            const card = document.getElementById('info-card');
+            card.classList.remove('translate-y-full');
+            card.classList.add('translate-y-0');
+        }
+
+        function closeCard(e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            isCardOpen = false;
+            const card = document.getElementById('info-card');
+            card.classList.add('translate-y-full');
+            card.classList.remove('translate-y-0');
+        }
+        window.closeCard = closeCard;
+
+        // --- VIDEO STORY LOGIC ---
+        function watchStory() {
+            const data = window.ARTWORK_DATA[window.currentArtworkIndex];
+            const modal = document.getElementById('video-modal');
+            const video = document.getElementById('story-video');
+            const endScreen = document.getElementById('video-end-screen');
+
+            // Set Source Dynamically
+            if (!video.src.includes(data.video)) {
+                video.src = data.video;
+            }
+
+            // Reset UI
+            document.getElementById('share-btn-text').innerText = "SHARE STORY";
+            endScreen.classList.add('hidden');
+            endScreen.classList.remove('flex');
+
+            modal.style.display = 'flex';
+            video.currentTime = 0;
+            video.play().catch(e => console.log("Auto-play prevented", e));
+            video.muted = false;
+
+            video.onended = () => {
+                endScreen.classList.remove('hidden');
+                endScreen.classList.add('flex');
+            };
+        }
+
+        function replayStory() {
+            const video = document.getElementById('story-video');
+            document.getElementById('video-end-screen').classList.add('hidden');
+            document.getElementById('video-end-screen').classList.remove('flex');
+            video.currentTime = 0;
+            video.play();
+        }
+
+        function closeStory() {
+            const modal = document.getElementById('video-modal');
+            const video = document.getElementById('story-video');
+            video.pause();
+            modal.style.display = 'none';
+            if (isStoryMode) {
+                document.getElementById('visit-cta').style.display = 'flex';
+            }
+        }
+
+        function openCatalog() {
+            window.open(window.ARTWORK_DATA[window.currentArtworkIndex].catalogUrl, '_blank');
+        }
+
+        // --- SMART SHARE LOGIC ---
+        async function shareVideoFile() {
+            const data = window.ARTWORK_DATA[window.currentArtworkIndex];
+            const btnText = document.getElementById('share-btn-text');
+            const originalText = btnText.innerText;
+
+            const deepLink = window.location.href.split('?')[0] + "?view=story";
+            const shareText = `${data.shareCaption}\n\nTry it here: ${deepLink}`;
+
+            btnText.innerText = "PREPARING...";
+
+            try {
+                // 1. Copy to Clipboard
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(shareText);
+                    alert("Caption & Link copied!");
+                }
+
+                // 2. Share API
+                if (navigator.share) {
+                    // Try sharing file if we can fetch it, else just text
+                    // Fetching blob might be heavy for some devices, usually just sharing text/url is safer for web
+                    // But user asked for smart share. 
+
+                    await navigator.share({
+                        title: data.title,
+                        text: shareText,
+                        url: deepLink
+                    });
+                } else {
+                    alert("Link copied to clipboard.");
+                }
+            } catch (error) {
+                console.error("Share error:", error);
+            } finally {
+                btnText.innerText = originalText;
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            checkUrlParams();
+
+            // Initial setup
+            updateUI(0);
+
+            // Bind Global Close
+            document.body.addEventListener('click', (e) => {
+                if (e.target.closest('#btn-close') || e.target.closest('#info-card') || e.target.closest('#splash-screen') || e.target.closest('.modal-overlay')) return;
+                // Tap background to open card if we scanned before
+                if (!isCardOpen && !isStoryMode && document.getElementById('scan-guide').classList.contains('opacity-0')) {
+                    openCard();
+                }
             });
-        } else {
-            alert("Link copied: " + deepLink);
-        }
-    }
 
-    function screenTapped(e) {
-        if (e.target.closest('#btn-close') || e.target.closest('#info-card') || e.target.closest('#splash-screen') || e.target.closest('.modal-overlay')) return;
-        if(!isCardOpen && animationTimer && !isStoryMode) {
-            clearTimeout(animationTimer);
-            openCard(); 
-        }
-    }
+            // Bind AR Events
+            const target0 = document.getElementById('target-0');
+            const target1 = document.getElementById('target-1');
 
-    document.addEventListener("DOMContentLoaded", () => {
-        checkUrlParams(); 
-        updateUI();
-        const target = document.getElementById('target');
-        if(target) { target.addEventListener("targetFound", () => { startExperience(); }); }
-        document.body.addEventListener('click', screenTapped);
-        document.body.addEventListener('touchstart', screenTapped);
-    });
-  </script>
+            if (target0) {
+                target0.addEventListener("targetFound", () => onTargetFound(0));
+                target0.addEventListener("targetLost", () => onTargetLost(0));
+            }
+            if (target1) {
+                target1.addEventListener("targetFound", () => onTargetFound(1));
+                target1.addEventListener("targetLost", () => onTargetLost(1));
+            }
+        });
+    </script>
 </head>
+
 <body>
 
-  <div id="splash-screen">
-      <h1 class="text-white font-bold tracking-[0.4em] text-3xl uppercase mb-12 text-center px-4">THE WORKSHOP</h1>
-      <button id="btn-enter" onclick="enterExperience()" class="border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95" style="pointer-events: auto !important;">
-          ENTER EXPERIENCE
-      </button>
-  </div>
-
-  <div id="video-modal" class="modal-overlay">
-      <button onclick="closeStory()" class="absolute top-6 right-6 text-white text-2xl z-50 p-2 interactive">✕</button>
-      
-      <video id="story-video" src="./assets/story.mp4" class="w-full max-w-md rounded-lg shadow-2xl" playsinline></video>
-      
-      <div id="video-end-screen" class="hidden absolute inset-0 flex-col items-center justify-center bg-black/80 w-full h-full gap-4 z-40">
-          
-          <button id="btn-main-action" class="bg-white text-black px-8 py-4 rounded-full font-bold tracking-widest interactive active:scale-95 mb-4 shadow-xl animate-fade-up delay-100">
-              ...
-          </button>
-
-          <button onclick="shareVideoFile()" class="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-full font-bold tracking-widest interactive active:scale-95 animate-fade-up delay-300">
-              <span id="share-btn-text">SHARE STORY</span>
-          </button>
-
-          <button onclick="replayStory()" class="text-white/70 hover:text-white mt-4 flex items-center gap-2 interactive animate-fade-up delay-500">
-              <span class="text-2xl">↺</span> Watch Again
-          </button>
-      </div>
-  </div>
-
-  <div id="visit-cta" class="modal-overlay">
-      <h2 class="text-white text-2xl font-light mb-4 text-center px-4">Experience the Magic</h2>
-      <p class="text-white/60 text-center px-8 mb-8">Visit The Workshop to see "The Butterfly Voyage" come to life in Augmented Reality.</p>
-      
-      <button onclick="window.location.href = window.location.href.split('?')[0]" class="border border-white text-white px-8 py-3 rounded-full mb-4 hover:bg-white hover:text-black transition interactive font-bold tracking-widest text-sm">
-          TRY SCANNER
-      </button>
-      
-      <button onclick="openWebsite()" class="text-white/50 text-xs mt-2 underline tracking-widest hover:text-white interactive">
-          VISIT THE WORKSHOP DUBAI
-      </button>
-      
-      <p class="text-white/30 text-[10px] mt-8 uppercase tracking-widest">Al Wasl Road, Jumeirah 2, Dubai</p>
-  </div>
-
-  <a-scene 
-    mindar-image="imageTargetSrc: ./assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01; uiScanning: no; uiLoading: no;" 
-    color-space="sRGB" 
-    renderer="colorManagement: true, physicallyCorrectLights; logarithmicDepthBuffer: true;" 
-    vr-mode-ui="enabled: false" 
-    device-orientation-permission-ui="enabled: false">
-    
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-    
-    <a-entity id="target" mindar-image-target="targetIndex: 0">
-        <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5" animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
-        <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01" animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
-    </a-entity>
-  </a-scene>
-
-  <div id="ui-layer" class="flex flex-col justify-between p-6 pb-10">
-    <div class="flex justify-between items-start w-full">
-        <h1 class="text-white font-bold tracking-widest text-lg uppercase drop-shadow-md">The Workshop</h1>
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen">
+        <!-- Replaced Text with Logo -->
+        <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 mb-12 animate-fade-up">
+        <button id="btn-enter" onclick="enterExperience()"
+            class="border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95"
+            style="pointer-events: auto !important;">
+            ENTER EXPERIENCE
+        </button>
     </div>
-    <div id="scan-guide" class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-500">
-        <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative">
-            <p class="absolute -bottom-10 w-full text-center text-white/80 font-light tracking-widest text-sm uppercase">Align Artwork</p>
+
+    <!-- VIDEO STORY MODAL -->
+    <div id="video-modal" class="modal-overlay">
+        <button onclick="closeStory()"
+            class="absolute top-6 right-6 text-white text-2xl z-50 p-2 interactive">✕</button>
+
+        <video id="story-video" class="w-full max-w-md rounded-lg shadow-2xl" playsinline></video>
+
+        <div id="video-end-screen"
+            class="hidden absolute inset-0 flex-col items-center justify-center bg-black/80 w-full h-full gap-4 z-40">
+            <button onclick="shareVideoFile()"
+                class="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-full font-bold tracking-widest interactive active:scale-95 animate-fade-up delay-300">
+                <span id="share-btn-text">SHARE STORY</span>
+            </button>
+            <button onclick="replayStory()"
+                class="text-white/70 hover:text-white mt-4 flex items-center gap-2 interactive animate-fade-up delay-500">
+                <span class="text-2xl">↺</span> Watch Again
+            </button>
         </div>
     </div>
-    <div id="info-card" class="interactive bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out relative">
-        <button id="btn-close" onclick="window.closeCard(event)" ontouchstart="window.closeCard(event)" class="interactive absolute top-4 right-4 bg-black/40 w-10 h-10 rounded-full flex items-center justify-center text-white z-50 shadow-md border border-white/20" style="pointer-events: auto !important; cursor: pointer;">✕</button>
-        <div class="mb-4">
-           <h2 id="lbl-title" class="text-2xl font-light mb-1">...</h2>
-           <p id="lbl-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">...</p>
+
+    <!-- VISIT CTA (Shared Mode only) -->
+    <div id="visit-cta" class="modal-overlay">
+        <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-32 mb-6 opacity-80">
+        <h2 class="text-white text-2xl font-light mb-4 text-center px-4">Experience the Magic</h2>
+        <p class="text-white/60 text-center px-8 mb-8">Visit us to see Art come to life in Augmented Reality.</p>
+        <button onclick="window.location.href = window.location.href.split('?')[0]"
+            class="border border-white text-white px-8 py-3 rounded-full mb-4 hover:bg-white hover:text-black transition interactive font-bold tracking-widest text-sm">
+            TRY SCANNER
+        </button>
+        <button onclick="openWebsite()"
+            class="text-white/50 text-xs mt-2 underline tracking-widest hover:text-white interactive">
+            VISIT WEBSITE
+        </button>
+    </div>
+
+    <!-- AR SCENE -->
+    <a-scene
+        mindar-image="imageTargetSrc: ./assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01; uiScanning: no; uiLoading: no;"
+        color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights; logarithmicDepthBuffer: true;"
+        vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <!-- Target 0: Butterfly Voyage -->
+        <a-entity id="target-0" mindar-image-target="targetIndex: 0">
+            <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5"
+                animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
+            <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
+        </a-entity>
+
+        <!-- Target 1: The Second Painting -->
+        <a-entity id="target-1" mindar-image-target="targetIndex: 1">
+            <!-- Placeholder content for simple verification -->
+            <a-box position="0 0 0" scale="0.5 0.5 0.1" color="lightblue" opacity="0.5"
+                animation="property: rotation; to: 0 360 0; dir: alternate; dur: 4000; loop: true"></a-box>
+            <!-- User can replace a-box with a-gltf-model later -->
+        </a-entity>
+    </a-scene>
+
+    <!-- UI OVERLAY -->
+    <div id="ui-layer" class="flex flex-col justify-between p-6 pb-10">
+        <div class="flex justify-between items-start w-full">
+            <!-- Replaced Text Header with Small Logo or nothing to keep clean. 
+             Code had: <h1 ...>The Workshop</h1>. 
+             We can put specific branding here if needed, or leave it cleaner. 
+        -->
         </div>
-        <button onclick="watchStory()" class="w-full border border-white/30 bg-white/5 text-white py-2 rounded-lg mb-2 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
-            <span>▶ WATCH STORY</span>
-        </button>
-        <button onclick="openCatalog()" class="w-full border border-white/30 bg-white/5 text-white py-2 rounded-lg mb-4 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
-            <span>THE WHOLE CATALOG</span>
-        </button>
-        <div class="flex flex-col items-center mb-6">
-            <div class="flex gap-2">
-                <button id="star-1" onclick="submitRating(1)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
-                <button id="star-2" onclick="submitRating(2)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
-                <button id="star-3" onclick="submitRating(3)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
-                <button id="star-4" onclick="submitRating(4)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
-                <button id="star-5" onclick="submitRating(5)" class="text-3xl text-white/30 transition hover:scale-110">★</button>
+
+        <!-- Scan Guide -->
+        <div id="scan-guide"
+            class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-500">
+            <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative">
+                <p
+                    class="absolute -bottom-10 w-full text-center text-white/80 font-light tracking-widest text-sm uppercase">
+                    Align Artwork</p>
             </div>
-            <p id="feedback" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Rating Saved!</p>
         </div>
-        <button id="btn-inquire" class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
-            <span id="btn-text">Inquire</span>
-        </button>
+
+        <!-- Info Card -->
+        <div id="info-card"
+            class="interactive bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out relative">
+            <button id="btn-close" onclick="window.closeCard(event)" ontouchstart="window.closeCard(event)"
+                class="interactive absolute top-4 right-4 bg-black/40 w-10 h-10 rounded-full flex items-center justify-center text-white z-50 shadow-md border border-white/20"
+                style="pointer-events: auto !important; cursor: pointer;">✕</button>
+            <div class="mb-4">
+                <h2 id="lbl-title" class="text-2xl font-light mb-1">...</h2>
+                <p id="lbl-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">...</p>
+            </div>
+            <button onclick="watchStory()"
+                class="w-full border border-white/30 bg-white/5 text-white py-2 rounded-lg mb-2 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
+                <span>▶ WATCH STORY</span>
+            </button>
+            <button onclick="openCatalog()"
+                class="w-full border border-white/30 bg-white/5 text-white py-2 rounded-lg mb-4 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
+                <span>FULL CATALOG</span>
+            </button>
+
+            <!-- Ratings -->
+            <div class="flex flex-col items-center mb-6">
+                <div class="flex gap-2">
+                    <button id="star-1" onclick="submitRating(1)"
+                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                    <button id="star-2" onclick="submitRating(2)"
+                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                    <button id="star-3" onclick="submitRating(3)"
+                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                    <button id="star-4" onclick="submitRating(4)"
+                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                    <button id="star-5" onclick="submitRating(5)"
+                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                </div>
+                <p id="feedback" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Rating
+                    Saved!</p>
+            </div>
+
+            <button id="btn-inquire"
+                class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                <span id="btn-text">Inquire</span>
+            </button>
+        </div>
     </div>
-  </div>
 </body>
+
 </html>
