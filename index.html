@@ -176,7 +176,7 @@
                 // Object 1: Two Skies
                 title: "Two Skies",
                 artist: "Majd Kurdieh",
-                price: "Inquire",
+                price: "AED 30,000",
                 video: "./assets/story2.mp4",
                 shareCaption: "Witness 'Two Skies' by Majd Kurdieh come to life! ✨☁️ #FannAPorter #MajdKurdieh #TwoSkies",
                 whatsappNumber: "971559522980",
@@ -360,28 +360,50 @@
             btnText.innerText = "PREPARING...";
 
             try {
-                // 1. Copy to Clipboard
-                if (navigator.clipboard) {
-                    await navigator.clipboard.writeText(shareText);
-                    alert("Caption & Link copied!");
-                }
+                // 1. Fetch Video Blob
+                const response = await fetch(data.video);
+                const blob = await response.blob();
+                const file = new File([blob], "video.mp4", { type: "video/mp4" });
 
-                // 2. Share API
-                if (navigator.share) {
-                    // Try sharing file if we can fetch it, else just text
-                    // Fetching blob might be heavy for some devices, usually just sharing text/url is safer for web
-                    // But user asked for smart share. 
+                const shareData = {
+                    files: [file],
+                    title: data.title,
+                    text: shareText,
+                    url: deepLink
+                };
 
-                    await navigator.share({
-                        title: data.title,
-                        text: shareText,
-                        url: deepLink
-                    });
+                const fallbackData = {
+                    title: data.title,
+                    text: shareText,
+                    url: deepLink
+                };
+
+                // 2. Share
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share(shareData);
                 } else {
-                    alert("Link copied to clipboard.");
+                    // Fallback if file sharing not supported
+                    throw new Error("File sharing not supported");
                 }
+
             } catch (error) {
-                console.error("Share error:", error);
+                console.log("File Share Failed/Not Supported, falling back to Link", error);
+
+                // Fallback: Link/Text Only
+                try {
+                    if (navigator.share) {
+                        await navigator.share({
+                            title: data.title,
+                            text: shareText,
+                            url: deepLink
+                        });
+                    } else if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(shareText);
+                        alert("Caption & Link copied!");
+                    }
+                } catch (e) {
+                    console.log("Fallback share failed", e);
+                }
             } finally {
                 btnText.innerText = originalText;
             }
@@ -495,7 +517,7 @@
     <div id="ui-layer" class="flex flex-col justify-between p-6 pb-10">
         <div class="flex justify-between items-start w-full">
             <!-- Replaced Text Header with Small Logo or nothing to keep clean. 
-             Code had: <h1 ...>The Workshop</h1>. 
+             Code had: <h1 ...>Fann À Porter</h1>. 
              We can put specific branding here if needed, or leave it cleaner. 
         -->
         </div>
