@@ -158,22 +158,6 @@
         .animate-focus-pull { animation: focusPull 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         .animate-ethereal { animation: etherealPulse 5s ease-in-out infinite; }
 
-        @media screen and (orientation: portrait) {
-            .force-landscape {
-                transform: rotate(90deg);
-                transform-origin: center center;
-                width: 100vh !important;
-                height: 100vw !important;
-                position: absolute;
-            }
-        }
-        @media screen and (orientation: landscape) {
-            .force-landscape {
-                width: 100vw !important;
-                height: 100vh !important;
-            }
-        }
-
         @keyframes scanGlow {
             0% { box-shadow: 0 0 10px rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
             50% { box-shadow: 0 0 30px rgba(255,255,255,0.8), inset 0 0 20px rgba(255,255,255,0.4); border-color: rgba(255,255,255,1); }
@@ -523,6 +507,15 @@
             }
         }
 
+        function expandVideo() {
+            const video = document.getElementById('story-video');
+            if (video.webkitEnterFullscreen) {
+                video.webkitEnterFullscreen(); // Trigger iOS Native Player (zero tabs, full immersion)
+            } else if (video.requestFullscreen) {
+                video.requestFullscreen(); // Trigger standard Android fullscreen
+            }
+        }
+
         function openCatalog() {
             window.open(window.ARTWORK_DATA[window.currentArtworkIndex].catalogUrl, '_blank');
         }
@@ -818,7 +811,11 @@
             <button onclick="closeStory()"
                 class="absolute top-6 right-6 text-white text-2xl z-50 w-14 aspect-square bg-black/40 backdrop-blur border border-white/20 rounded-full flex items-center justify-center interactive font-light hover:bg-black/80 active:scale-95 transition shadow-[0_0_15px_rgba(0,0,0,0.5)]">✕</button>
 
-            <!-- playsinline added back so iOS stays inside the CSS forced rotation wrapper -->
+            <!-- Expand Fullscreen Icon -->
+            <button onclick="expandVideo()" class="absolute bottom-6 right-6 text-white/50 hover:text-white bg-black/40 backdrop-blur w-12 aspect-square rounded-full flex items-center justify-center z-50 interactive border border-white/20 active:scale-95 transition shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" /></svg>
+            </button>
+
             <video id="story-video" class="w-full h-full object-contain bg-black" playsinline controls></video>
 
             <div id="video-end-screen"
