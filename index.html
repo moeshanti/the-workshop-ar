@@ -6,6 +6,11 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Fann À Porter | AR Companion</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -595,7 +600,53 @@
                 target1.addEventListener("targetFound", () => onTargetFound(1));
                 target1.addEventListener("targetLost", () => onTargetLost(1));
             }
+
+            // Phase 5: PWA Service Worker Registration
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('SW Registered!', reg))
+                .catch(err => console.error('SW Error!', err));
+            }
+
+            // Phase 5: Android PWA Install logic
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                window.deferredPrompt = e;
+                document.getElementById('btn-install-android').style.display = 'block';
+                document.getElementById('btn-install-ios').style.display = 'none';
+            });
+
+            // Check if iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS && !window.navigator.standalone) {
+                document.getElementById('btn-install-android').style.display = 'none';
+                document.getElementById('btn-install-ios').style.display = 'block';
+            }
         });
+
+        // UI Handlers
+        function openHowToUse() {
+            document.getElementById('modal-how-to').style.display = 'flex';
+        }
+        function closeHowToUse() {
+            document.getElementById('modal-how-to').style.display = 'none';
+        }
+
+        async function installPWA() {
+            const promptEvent = window.deferredPrompt;
+            if (!promptEvent) return;
+            promptEvent.prompt();
+            await promptEvent.userChoice;
+            window.deferredPrompt = null;
+            document.getElementById('btn-install-android').style.display = 'none';
+        }
+
+        function showIOSInstall() {
+            document.getElementById('modal-ios-install').style.display = 'flex';
+        }
+        function closeIOSInstall() {
+            document.getElementById('modal-ios-install').style.display = 'none';
+        }
     </script>
 </head>
 
@@ -615,6 +666,18 @@
 
     <!-- SPLASH SCREEN -->
     <div id="splash-screen">
+        <!-- Install Buttons Header -->
+        <div class="absolute top-8 right-8 z-50">
+            <button id="btn-install-android" onclick="installPWA()" style="display: none;"
+                class="bg-white/10 border border-white/30 text-white px-4 py-2 rounded-full text-xs font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer interactive">
+                INSTALL APP
+            </button>
+            <button id="btn-install-ios" onclick="showIOSInstall()" style="display: none;"
+                class="bg-white/10 border border-white/30 text-white px-4 py-2 rounded-full text-xs font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer interactive">
+                INSTALL APP
+            </button>
+        </div>
+
         <!-- Structural Div to decouple animations -->
         <div class="mb-12 animate-focus-pull">
             <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 animate-zen-float">
@@ -624,6 +687,61 @@
             style="pointer-events: auto !important;">
             ENTER EXPERIENCE
         </button>
+        <button onclick="openHowToUse()" class="mt-6 text-white/60 text-xs tracking-widest hover:text-white underline transition interactive">
+            HOW TO USE THIS APP
+        </button>
+    </div>
+
+    <!-- HOW TO USE MODAL -->
+    <div id="modal-how-to" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[999999] hidden flex-col items-center justify-center p-8">
+        <button onclick="closeHowToUse()" class="absolute top-8 right-8 text-white text-3xl font-light interactive">✕</button>
+        <h2 class="text-white text-2xl tracking-widest mb-10 font-light text-center animate-focus-pull">HOW TO USE</h2>
+        
+        <div class="flex flex-col gap-8 w-full max-w-sm animate-focus-pull delay-100">
+            <div class="flex items-center gap-6">
+                <div class="text-4xl">📷</div>
+                <div>
+                    <h3 class="text-white font-bold tracking-widest text-sm">ALLOW CAMERA</h3>
+                    <p class="text-white/60 text-xs mt-1 leading-relaxed">The app needs camera access to see the artworks.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="text-4xl">🖼️</div>
+                <div>
+                    <h3 class="text-white font-bold tracking-widest text-sm">SCAN ARTWORK</h3>
+                    <p class="text-white/60 text-xs mt-1 leading-relaxed">Point your camera directly at the Majd Kurdieh paintings.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="text-4xl">🔊</div>
+                <div>
+                    <h3 class="text-white font-bold tracking-widest text-sm">SOUND ON</h3>
+                    <p class="text-white/60 text-xs mt-1 leading-relaxed">Turn up your volume to hear the immersive soundtrack.</p>
+                </div>
+            </div>
+        </div>
+        
+        <button onclick="closeHowToUse()" class="mt-12 bg-white text-black px-12 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-gray-200 transition interactive animate-focus-pull delay-300">
+            GOT IT
+        </button>
+    </div>
+
+    <!-- IOS INSTALL INSTRUCTIONS MODAL -->
+    <div id="modal-ios-install" class="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[999999] hidden flex-col items-center justify-between p-8">
+        <button onclick="closeIOSInstall()" class="absolute top-8 right-8 text-white text-3xl font-light interactive">✕</button>
+        
+        <div class="flex flex-col items-center justify-center flex-grow animate-focus-pull">
+            <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-32 mb-8 opacity-50">
+            <h2 class="text-white text-2xl tracking-widest mb-4 font-light text-center">INSTALL APP</h2>
+            <p class="text-white/70 text-center max-w-xs leading-relaxed text-sm">Get the full immersive experience. Install this app to your iPhone home screen in two steps.</p>
+        </div>
+
+        <!-- Instructional Arrow pointing down to Safari bar -->
+        <div class="flex flex-col items-center pb-8 animate-focus-pull delay-100">
+            <p class="text-white font-bold tracking-widest text-sm text-center mb-6">1. Tap the Share icon below <br><span class="text-2xl mt-2 block animate-zen-float text-blue-400">⍐</span></p>
+            <p class="text-white font-bold tracking-widest text-sm text-center mb-4">2. Select "Add to Home Screen" <br><span class="text-2xl mt-2 block animate-zen-float text-gray-400">⊞</span></p>
+            <div class="text-white/30 text-4xl mt-4 animate-bounce">↓</div>
+        </div>
     </div>
 
     <!-- VIDEO STORY MODAL -->
