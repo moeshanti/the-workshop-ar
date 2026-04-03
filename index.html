@@ -203,6 +203,7 @@
         window.currentArtworkIndex = 0; // Default to first
         let isCardOpen = false;
         let isStoryMode = false;
+        let isVideoActive = false; // Phase 3 Fix: Locks ambient audio when video is playing
 
         // --- PHASE 3: IDLE & AUDIO ENGINES ---
         let idleTimer;
@@ -300,6 +301,12 @@
 
         // --- ENTRY POINTS ---
         function enterExperience() {
+            // Unlock Audio globally for strict mobile browsers
+            const a0 = document.getElementById('bg-audio-0');
+            const a1 = document.getElementById('bg-audio-1');
+            if(a0) { a0.volume=0; a0.play().then(()=>a0.pause()).catch(e=>{}); }
+            if(a1) { a1.volume=0; a1.play().then(()=>a1.pause()).catch(e=>{}); }
+
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
             document.body.style.backgroundColor = 'transparent';
@@ -320,7 +327,9 @@
         function onTargetFound(index) {
             console.log("Target Found: " + index);
             if (navigator.vibrate) navigator.vibrate(200); // Phase 3: Haptics
-            playAmbientAudio(index); // Phase 3: Audio
+            if (!isVideoActive) {
+                playAmbientAudio(index); // Phase 3 Fix: Prevent overlapping audio
+            }
             resetIdleTimer();
 
             const scanBorder = document.querySelector('#scan-guide .border-2');
@@ -350,7 +359,9 @@
 
         function onTargetLost(index) {
             console.log("Target Lost: " + index);
-            pauseAmbientAudio(); // Phase 3: Pause audio when looking away
+            if (!isVideoActive) {
+                pauseAmbientAudio(); // Phase 3: Pause audio when looking away
+            }
             const scanBorder = document.querySelector('#scan-guide .border-2');
             if (scanBorder) scanBorder.classList.add('animate-scan');
         }
@@ -417,15 +428,15 @@
 
             modal.style.display = 'flex';
             video.currentTime = 0;
+            isVideoActive = true;
             pauseAmbientAudio(); // Phase 3: Prioritize video audio
             
-            if (video.requestFullscreen) {
-                video.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
-            } else if (video.webkitEnterFullscreen) {
-                video.webkitEnterFullscreen();
-            }
-
-            video.play().catch(e => console.log("Auto-play prevented", e));
+            // Phase 3 Fix: The absence of playsinline natively forces fullscreen on iOS.
+            video.play().then(() => {
+                if (video.requestFullscreen) {
+                    video.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
+                }
+            }).catch(e => console.log("Auto-play prevented", e));
             video.muted = false;
 
             video.onended = () => {
@@ -447,6 +458,7 @@
             const video = document.getElementById('story-video');
             video.pause();
             modal.style.display = 'none';
+            isVideoActive = false;
             resumeAmbientAudio(); // Phase 3: Restore ambient music
             if (isStoryMode) {
                 document.getElementById('visit-cta').style.display = 'flex';
@@ -568,8 +580,10 @@
 
     <!-- SPLASH SCREEN -->
     <div id="splash-screen">
-        <!-- Replaced Text with Logo -->
-        <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 mb-12 animate-fade-up animate-breath">
+        <!-- Structural Div to decouple animations -->
+        <div class="mb-12 animate-fade-up">
+            <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 animate-breath">
+        </div>
         <button id="btn-enter" onclick="enterExperience()"
             class="border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95"
             style="pointer-events: auto !important;">
@@ -582,7 +596,7 @@
         <button onclick="closeStory()"
             class="absolute top-6 right-6 text-white text-2xl z-50 p-2 interactive">✕</button>
 
-        <video id="story-video" class="w-full h-full object-contain bg-black" playsinline controls></video>
+        <video id="story-video" class="w-full h-full object-contain bg-black" controls></video>
 
         <div id="video-end-screen"
             class="hidden absolute inset-0 flex-col items-center justify-center bg-black/80 w-full h-full gap-4 z-40">
