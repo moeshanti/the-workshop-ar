@@ -57,6 +57,7 @@
 
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
 
     <style>
         /* 1. INITIAL STATE */
@@ -495,21 +496,19 @@
         vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-light type="ambient" intensity="1.6"></a-light>
+        <a-light type="directional" position="1 2 1" intensity="1.8"></a-light>
 
         <!-- Target 0: Butterfly Voyage -->
         <a-entity id="target-0" mindar-image-target="targetIndex: 0">
-            <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5"
-                animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
-            <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
+            <a-gltf-model src="./assets/butterflies.glb" position="0 0 0" scale="1 1 1"
+                animation-mixer="clip: *; loop: repeat"></a-gltf-model>
         </a-entity>
 
         <!-- Target 1: The Second Painting -->
         <a-entity id="target-1" mindar-image-target="targetIndex: 1">
-            <a-gltf-model src="./assets/moon.glb" position="0 0 0" scale="0.5 0.5 0.5"
-                animation="property: position; to: 0 0.5 0; dir: alternate; dur: 2000; loop: true"></a-gltf-model>
-            <a-gltf-model src="./assets/butterflies.glb" position="0.5 0 0" scale="0.01 0.01 0.01"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 8000"></a-gltf-model>
+            <a-gltf-model src="./assets/Two_Sky.glb" position="0 0 0" scale="1 1 1"
+                animation-mixer="clip: *; loop: repeat"></a-gltf-model>
         </a-entity>
     </a-scene>
 
