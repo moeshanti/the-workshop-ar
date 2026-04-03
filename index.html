@@ -321,7 +321,29 @@
 
         // --- ENTRY POINTS ---
         function enterExperience() {
-            // Phase 9: Audio hack removed to prevent ghost overlaps. Audio triggers natively on Target-Lock.
+            // Phase 12: Secure Apple Audio Unlock.
+            // iOS Safari requires audio.play() to be explicitly bound to a human tap.
+            // We unlock the audio here with 0 volume, waiting for strict Promise resolution to pause it instantly.
+            // This prevents the 'Ghost Audio' overlap while securing Apple's playback clearance for the AR Scanner.
+            const a0 = document.getElementById('bg-audio-0');
+            const a1 = document.getElementById('bg-audio-1');
+            
+            if(a0) {
+                a0.volume = 0;
+                a0.load();
+                const playPromise0 = a0.play();
+                if (playPromise0 !== undefined) {
+                    playPromise0.then(() => { a0.pause(); }).catch(e => { console.log("Audio 0 unlock blocked", e); });
+                }
+            }
+            if(a1) {
+                a1.volume = 0;
+                a1.load();
+                const playPromise1 = a1.play();
+                if (playPromise1 !== undefined) {
+                    playPromise1.then(() => { a1.pause(); }).catch(e => { console.log("Audio 1 unlock blocked", e); });
+                }
+            }
 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
