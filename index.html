@@ -528,6 +528,7 @@
             const shareBtn = document.getElementById('share-btn-text-video');
             if(shareBtn) shareBtn.innerText = "SHARE STORY";
             closeVideoDrawer(); // Ensure drawer starts mathematically closed
+            closeCard(); // Phase 13 Fix: Explicitly annihilate AR Drawer state before opening video
 
             modal.style.display = 'flex';
             video.currentTime = 0;
@@ -850,7 +851,7 @@
     </div>
 
     <!-- VIDEO STORY MODAL -->
-    <div id="video-modal" class="modal-overlay z-50 bg-black">
+    <div id="video-modal" class="modal-overlay z-[9999] bg-black">
         <div class="w-full h-full flex flex-col items-center justify-center relative overflow-hidden">
             
             <!-- Close Video Icon -->
