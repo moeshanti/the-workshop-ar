@@ -141,6 +141,20 @@
             }
         }
 
+        @keyframes breath {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .animate-breath { animation: breath 4s ease-in-out infinite; }
+
+        @keyframes scanGlow {
+            0% { box-shadow: 0 0 10px rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
+            50% { box-shadow: 0 0 30px rgba(255,255,255,0.8), inset 0 0 20px rgba(255,255,255,0.4); border-color: rgba(255,255,255,1); }
+            100% { box-shadow: 0 0 10px rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
+        }
+        .animate-scan { animation: scanGlow 2.5s ease-in-out infinite; }
+
         .animate-fade-up {
             opacity: 0;
             animation: fadeInUp 0.6s ease-out forwards;
@@ -190,6 +204,82 @@
         let isCardOpen = false;
         let isStoryMode = false;
 
+        // --- PHASE 3: IDLE & AUDIO ENGINES ---
+        let idleTimer;
+        function resetIdleTimer() {
+            clearTimeout(idleTimer);
+            const idleScreen = document.getElementById('idle-screen');
+            if (idleScreen && !idleScreen.classList.contains('hidden') && idleScreen.style.opacity === '1') {
+                wakeUp();
+            }
+            idleTimer = setTimeout(goToSleep, 60000); // 60 seconds
+        }
+
+        function goToSleep() {
+            const idleScreen = document.getElementById('idle-screen');
+            if (idleScreen) {
+                idleScreen.classList.remove('hidden');
+                setTimeout(() => {
+                    idleScreen.style.opacity = '1';
+                    idleScreen.style.pointerEvents = 'auto';
+                }, 50);
+            }
+        }
+
+        function wakeUp() {
+            const idleScreen = document.getElementById('idle-screen');
+            if (idleScreen) {
+                idleScreen.style.opacity = '0';
+                idleScreen.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    idleScreen.classList.add('hidden');
+                }, 1000);
+            }
+        }
+
+        let activeAudio = null;
+        function fadeAudio(audioElement, targetVolume, duration = 1000) {
+            if (!audioElement) return;
+            const steps = 20;
+            const stepTime = duration / steps;
+            const volumeStep = (targetVolume - audioElement.volume) / steps;
+            
+            clearInterval(audioElement.fadeInterval);
+            if (targetVolume > 0 && audioElement.paused) audioElement.play().catch(e => console.log('Audio play failed', e));
+
+            audioElement.fadeInterval = setInterval(() => {
+                let newVol = audioElement.volume + volumeStep;
+                if (newVol >= 1) newVol = 1;
+                if (newVol <= 0) newVol = 0;
+                audioElement.volume = newVol;
+
+                if (newVol === targetVolume) {
+                    clearInterval(audioElement.fadeInterval);
+                    if (targetVolume === 0) audioElement.pause();
+                }
+            }, stepTime);
+        }
+
+        function playAmbientAudio(index) {
+            const newAudio = document.getElementById(`bg-audio-${index}`);
+            if (activeAudio && activeAudio !== newAudio) {
+                fadeAudio(activeAudio, 0, 500);
+            }
+            if (newAudio && !isStoryMode) {
+                newAudio.volume = 0;
+                fadeAudio(newAudio, 1, 1500);
+                activeAudio = newAudio;
+            }
+        }
+
+        function pauseAmbientAudio() {
+            if (activeAudio) fadeAudio(activeAudio, 0, 800);
+        }
+
+        function resumeAmbientAudio() {
+            if (activeAudio && !isStoryMode) fadeAudio(activeAudio, 1, 1000);
+        }
+
         // --- SHARED / DEEP LINK ENTRY ---
         function checkUrlParams() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -229,6 +319,13 @@
         // --- AR TARGET LOGIC ---
         function onTargetFound(index) {
             console.log("Target Found: " + index);
+            if (navigator.vibrate) navigator.vibrate(200); // Phase 3: Haptics
+            playAmbientAudio(index); // Phase 3: Audio
+            resetIdleTimer();
+
+            const scanBorder = document.querySelector('#scan-guide .border-2');
+            if (scanBorder) scanBorder.classList.remove('animate-scan');
+
             window.currentArtworkIndex = index;
 
             // 1. Update UI Data
@@ -253,7 +350,9 @@
 
         function onTargetLost(index) {
             console.log("Target Lost: " + index);
-            // Optional: Pause logic if needed
+            pauseAmbientAudio(); // Phase 3: Pause audio when looking away
+            const scanBorder = document.querySelector('#scan-guide .border-2');
+            if (scanBorder) scanBorder.classList.add('animate-scan');
         }
 
         function updateUI(index) {
@@ -318,6 +417,7 @@
 
             modal.style.display = 'flex';
             video.currentTime = 0;
+            pauseAmbientAudio(); // Phase 3: Prioritize video audio
             
             if (video.requestFullscreen) {
                 video.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
@@ -347,6 +447,7 @@
             const video = document.getElementById('story-video');
             video.pause();
             modal.style.display = 'none';
+            resumeAmbientAudio(); // Phase 3: Restore ambient music
             if (isStoryMode) {
                 document.getElementById('visit-cta').style.display = 'flex';
             }
@@ -419,6 +520,11 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             checkUrlParams();
+            
+            // Phase 3: Global Idle tracking
+            document.body.addEventListener('click', resetIdleTimer, true);
+            document.body.addEventListener('touchstart', resetIdleTimer, true);
+            resetIdleTimer(); 
 
             // Initial setup
             updateUI(0);
@@ -450,10 +556,20 @@
 
 <body>
 
+    <!-- IDLE SCREEN OVERLAY -->
+    <div id="idle-screen" class="fixed inset-0 bg-black/90 z-[90] flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-1000 hidden">
+        <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 animate-breath opacity-50">
+        <p class="text-white/50 mt-8 tracking-widest text-sm font-light uppercase">Tap anywhere to wake</p>
+    </div>
+
+    <!-- AMBIENT AUDIO -->
+    <audio id="bg-audio-0" loop preload="auto" src="./assets/music_butterflies.mp3"></audio>
+    <audio id="bg-audio-1" loop preload="auto" src="./assets/music_twoskies.mp3"></audio>
+
     <!-- SPLASH SCREEN -->
     <div id="splash-screen">
         <!-- Replaced Text with Logo -->
-        <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 mb-12 animate-fade-up">
+        <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 mb-12 animate-fade-up animate-breath">
         <button id="btn-enter" onclick="enterExperience()"
             class="border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95"
             style="pointer-events: auto !important;">
@@ -531,7 +647,7 @@
         <!-- Scan Guide -->
         <div id="scan-guide"
             class="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-500">
-            <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative">
+            <div class="w-64 h-64 border-2 border-white/50 rounded-3xl relative animate-scan transition-all duration-300">
                 <p
                     class="absolute -bottom-10 w-full text-center text-white/80 font-light tracking-widest text-sm uppercase">
                     Align Artwork</p>
@@ -540,7 +656,7 @@
 
         <!-- Info Card -->
         <div id="info-card"
-            class="interactive bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out relative">
+            class="interactive bg-white/10 backdrop-blur-3xl border border-white/30 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out relative">
             <button id="btn-close" onclick="window.closeCard(event)" ontouchstart="window.closeCard(event)"
                 class="interactive absolute top-4 right-4 bg-black/40 w-10 h-10 rounded-full flex items-center justify-center text-white z-50 shadow-md border border-white/20"
                 style="pointer-events: auto !important; cursor: pointer;">✕</button>
