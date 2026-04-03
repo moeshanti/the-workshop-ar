@@ -336,11 +336,7 @@
 
         // --- ENTRY POINTS ---
         function enterExperience() {
-            // Unlock Audio globally for strict mobile browsers
-            const a0 = document.getElementById('bg-audio-0');
-            const a1 = document.getElementById('bg-audio-1');
-            if(a0) { a0.volume=0; a0.play().then(()=>a0.pause()).catch(e=>{}); }
-            if(a1) { a1.volume=0; a1.play().then(()=>a1.pause()).catch(e=>{}); }
+            // Phase 9: Audio hack removed to prevent ghost overlaps. Audio triggers natively on Target-Lock.
 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
@@ -435,8 +431,15 @@
             const card = document.getElementById('info-card');
             card.classList.remove('translate-y-[calc(100%-115px)]');
             card.classList.add('translate-y-0');
+
+            const act = document.getElementById('info-card-actions');
+            if (act) {
+                act.classList.remove('opacity-0', 'pointer-events-none');
+                act.classList.add('opacity-100', 'pointer-events-auto');
+            }
+
             const chev = document.getElementById('drawer-chevron');
-            if (chev) checkUrlParams(); // dummy call to prevent unused error, actually we just toggle class
+            if (chev) checkUrlParams(); // prevent arbitrary DOM unused block warning
             if (chev) {
                 chev.classList.remove('rotate-180');
                 chev.classList.add('animate-bounce');
@@ -450,6 +453,13 @@
             const card = document.getElementById('info-card');
             card.classList.add('translate-y-[calc(100%-115px)]');
             card.classList.remove('translate-y-0');
+            
+            const act = document.getElementById('info-card-actions');
+            if (act) {
+                act.classList.add('opacity-0', 'pointer-events-none');
+                act.classList.remove('opacity-100', 'pointer-events-auto');
+            }
+
             const chev = document.getElementById('drawer-chevron');
             if (chev) chev.classList.add('rotate-180');
         }
@@ -796,9 +806,12 @@
         <!-- Wrapper enforces landscape -->
         <div class="force-landscape flex flex-col items-center justify-center relative bg-black w-full h-full">
             
-            <!-- Quick Share Overlay Icon -->
-            <button onclick="shareVideoFile()" class="absolute top-6 left-6 text-white bg-black/40 backdrop-blur w-14 aspect-square rounded-full flex items-center justify-center z-50 interactive border border-white/20 active:scale-95 transition hover:bg-black/80 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+            <!-- Quick Share Overlay Text Pill -->
+            <button onclick="shareVideoFile()" class="absolute top-6 left-6 text-green-100 bg-green-900/60 backdrop-blur outline outline-1 outline-white/20 whitespace-nowrap px-5 py-3 rounded-full flex items-center justify-center z-50 interactive border border-green-500/50 hover:bg-green-800/80 active:scale-95 transition shadow-[0_0_15px_rgba(22,163,74,0.3)]">
+                <span class="text-xs font-bold tracking-widest flex items-center gap-2">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mb-[2px]"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                    SHARE STORY
+                </span>
             </button>
 
             <!-- Close Video Icon -->
@@ -906,46 +919,48 @@
                 <p id="lbl-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">...</p>
             </div>
             
-            <button onclick="watchStory()"
-                class="w-full border border-white/30 bg-white/5 text-white py-3 rounded-lg mb-2 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
-                <span>▶ WATCH THE STORY IN VIDEO</span>
-            </button>
-            <button onclick="shareVideoFile()"
-                class="w-full border border-green-500/50 outline outline-[-1px] outline-transparent bg-green-900/40 text-green-100 py-3 rounded-lg mb-4 text-xs font-bold tracking-widest hover:bg-green-800/60 interactive flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(22,163,74,0.2)]">
-                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mb-[2px]"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
-                <span>SHARE STORY</span>
-            </button>
-            <button onclick="openCatalog()"
-                class="w-full border border-white/30 bg-white/5 text-white py-3 rounded-lg mb-4 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
-                <span>FULL CATALOG</span>
-            </button>
+            <div id="info-card-actions" class="w-full flex-col opacity-0 pointer-events-none transition-opacity duration-500">
+                <button onclick="watchStory()"
+                    class="w-full border border-white/30 bg-white/5 text-white py-3 rounded-lg mb-2 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
+                    <span>▶ WATCH THE STORY IN VIDEO</span>
+                </button>
+                <button onclick="shareVideoFile()"
+                    class="w-full border border-green-500/50 outline outline-[-1px] outline-transparent bg-green-900/40 text-green-100 py-3 rounded-lg mb-4 text-xs font-bold tracking-widest hover:bg-green-800/60 interactive flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(22,163,74,0.2)]">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mb-[2px]"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                    <span>SHARE STORY</span>
+                </button>
+                <button onclick="openCatalog()"
+                    class="w-full border border-white/30 bg-white/5 text-white py-3 rounded-lg mb-4 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
+                    <span>FULL CATALOG</span>
+                </button>
 
-            <!-- Ratings -->
-            <div class="flex flex-col items-center mb-6">
-                <div class="flex gap-2">
-                    <button id="star-1" onclick="submitRating(1)"
-                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
-                    <button id="star-2" onclick="submitRating(2)"
-                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
-                    <button id="star-3" onclick="submitRating(3)"
-                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
-                    <button id="star-4" onclick="submitRating(4)"
-                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
-                    <button id="star-5" onclick="submitRating(5)"
-                        class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                <!-- Ratings -->
+                <div class="flex flex-col items-center mb-6">
+                    <div class="flex gap-2">
+                        <button id="star-1" onclick="submitRating(1)"
+                            class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                        <button id="star-2" onclick="submitRating(2)"
+                            class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                        <button id="star-3" onclick="submitRating(3)"
+                            class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                        <button id="star-4" onclick="submitRating(4)"
+                            class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                        <button id="star-5" onclick="submitRating(5)"
+                            class="text-3xl text-white/30 transition hover:scale-110">★</button>
+                    </div>
+                    <p id="feedback" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Rating
+                        Saved!</p>
                 </div>
-                <p id="feedback" class="text-green-400 text-xs mt-2 font-medium opacity-0 transition-opacity">Rating
-                    Saved!</p>
-            </div>
 
-            <button id="btn-inquire"
-                class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 mb-3">
-                <span id="btn-text">Inquire</span>
-            </button>
-            <button onclick="window.closeCard(event)" ontouchstart="window.closeCard(event)"
-                class="w-full border border-white/30 bg-transparent text-white/90 font-medium tracking-wide py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 hover:bg-white/10" style="pointer-events: auto !important;">
-                <span>Continue with AR</span>
-            </button>
+                <button id="btn-inquire"
+                    class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 mb-3">
+                    <span id="btn-text">Inquire</span>
+                </button>
+                <button onclick="window.closeCard(event)" ontouchstart="window.closeCard(event)"
+                    class="w-full border border-white/30 bg-transparent text-white/90 font-medium tracking-wide py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 hover:bg-white/10" style="pointer-events: auto !important;">
+                    <span>Continue with AR</span>
+                </button>
+            </div>
         </div>
     </div>
 </body>
