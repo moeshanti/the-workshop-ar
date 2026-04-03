@@ -247,7 +247,7 @@
 
                 window.cardTimer = setTimeout(() => {
                     openCard();
-                }, 5000); // 5 seconds delay
+                }, 15000); // 15 seconds delay
             }
         }
 
@@ -318,6 +318,13 @@
 
             modal.style.display = 'flex';
             video.currentTime = 0;
+            
+            if (video.requestFullscreen) {
+                video.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
+            } else if (video.webkitEnterFullscreen) {
+                video.webkitEnterFullscreen();
+            }
+
             video.play().catch(e => console.log("Auto-play prevented", e));
             video.muted = false;
 
@@ -459,7 +466,7 @@
         <button onclick="closeStory()"
             class="absolute top-6 right-6 text-white text-2xl z-50 p-2 interactive">✕</button>
 
-        <video id="story-video" class="w-full max-w-md rounded-lg shadow-2xl" playsinline></video>
+        <video id="story-video" class="w-full h-full object-contain bg-black" playsinline controls></video>
 
         <div id="video-end-screen"
             class="hidden absolute inset-0 flex-col items-center justify-center bg-black/80 w-full h-full gap-4 z-40">
@@ -569,8 +576,12 @@
             </div>
 
             <button id="btn-inquire"
-                class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 mb-3">
                 <span id="btn-text">Inquire</span>
+            </button>
+            <button onclick="window.closeCard(event)" ontouchstart="window.closeCard(event)"
+                class="w-full border border-white/30 bg-transparent text-white/90 font-medium tracking-wide py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 hover:bg-white/10" style="pointer-events: auto !important;">
+                <span>Continue with AR</span>
             </button>
         </div>
     </div>
