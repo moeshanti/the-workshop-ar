@@ -142,11 +142,27 @@
         }
 
         @keyframes breath {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
+            0% { transform: scale(0.95); opacity: 0.8; filter: drop-shadow(0 0 5px rgba(255,255,255,0.4)); }
+            50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 30px rgba(255,255,255,0.9)); }
+            100% { transform: scale(0.95); opacity: 0.8; filter: drop-shadow(0 0 5px rgba(255,255,255,0.4)); }
         }
         .animate-breath { animation: breath 4s ease-in-out infinite; }
+
+        @media screen and (orientation: portrait) {
+            .force-landscape {
+                transform: rotate(90deg);
+                transform-origin: center center;
+                width: 100vh !important;
+                height: 100vw !important;
+                position: absolute;
+            }
+        }
+        @media screen and (orientation: landscape) {
+            .force-landscape {
+                width: 100vw !important;
+                height: 100vh !important;
+            }
+        }
 
         @keyframes scanGlow {
             0% { box-shadow: 0 0 10px rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
@@ -204,6 +220,7 @@
         let isCardOpen = false;
         let isStoryMode = false;
         let isVideoActive = false; // Phase 3 Fix: Locks ambient audio when video is playing
+        let isTargetFound = false; // Phase 4 Fix: Verifies camera lock
 
         // --- PHASE 3: IDLE & AUDIO ENGINES ---
         let idleTimer;
@@ -278,7 +295,7 @@
         }
 
         function resumeAmbientAudio() {
-            if (activeAudio && !isStoryMode) fadeAudio(activeAudio, 1, 1000);
+            if (activeAudio && !isStoryMode && isTargetFound) fadeAudio(activeAudio, 1, 1000);
         }
 
         // --- SHARED / DEEP LINK ENTRY ---
@@ -326,6 +343,7 @@
         // --- AR TARGET LOGIC ---
         function onTargetFound(index) {
             console.log("Target Found: " + index);
+            isTargetFound = true;
             if (navigator.vibrate) navigator.vibrate(200); // Phase 3: Haptics
             if (!isVideoActive) {
                 playAmbientAudio(index); // Phase 3 Fix: Prevent overlapping audio
@@ -359,6 +377,7 @@
 
         function onTargetLost(index) {
             console.log("Target Lost: " + index);
+            isTargetFound = false;
             if (!isVideoActive) {
                 pauseAmbientAudio(); // Phase 3: Pause audio when looking away
             }
@@ -431,12 +450,8 @@
             isVideoActive = true;
             pauseAmbientAudio(); // Phase 3: Prioritize video audio
             
-            // Phase 3 Fix: The absence of playsinline natively forces fullscreen on iOS.
-            video.play().then(() => {
-                if (video.requestFullscreen) {
-                    video.requestFullscreen().catch(e => console.log("Fullscreen request failed", e));
-                }
-            }).catch(e => console.log("Auto-play prevented", e));
+            // Phase 4 Fix: CSS Forced Landscape natively drives orientation without APIs
+            video.play().catch(e => console.log("Auto-play prevented", e));
             video.muted = false;
 
             video.onended = () => {
@@ -533,6 +548,19 @@
         document.addEventListener("DOMContentLoaded", () => {
             checkUrlParams();
             
+            // Phase 4: Handle Background/Minimized App Leak
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) {
+                    if (activeAudio && !activeAudio.paused) fadeAudio(activeAudio, 0, 500);
+                    const video = document.getElementById('story-video');
+                    if (video && !video.paused) video.pause();
+                } else {
+                    if (isTargetFound && !isVideoActive && !isStoryMode && activeAudio) {
+                        fadeAudio(activeAudio, 1, 1000);
+                    }
+                }
+            });
+
             // Phase 3: Global Idle tracking
             document.body.addEventListener('click', resetIdleTimer, true);
             document.body.addEventListener('touchstart', resetIdleTimer, true);
@@ -593,21 +621,31 @@
 
     <!-- VIDEO STORY MODAL -->
     <div id="video-modal" class="modal-overlay">
-        <button onclick="closeStory()"
-            class="absolute top-6 right-6 text-white text-2xl z-50 p-2 interactive">✕</button>
+        <!-- Wrapper enforces landscape -->
+        <div class="force-landscape flex flex-col items-center justify-center relative bg-black w-full h-full">
+            <button onclick="closeStory()"
+                class="absolute top-6 right-6 text-white text-3xl z-50 p-4 interactive font-bold">✕</button>
 
-        <video id="story-video" class="w-full h-full object-contain bg-black" controls></video>
+            <!-- playsinline added back so iOS stays inside the CSS forced rotation wrapper -->
+            <video id="story-video" class="w-full h-full object-contain bg-black" playsinline controls></video>
 
-        <div id="video-end-screen"
-            class="hidden absolute inset-0 flex-col items-center justify-center bg-black/80 w-full h-full gap-4 z-40">
-            <button onclick="shareVideoFile()"
-                class="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-full font-bold tracking-widest interactive active:scale-95 animate-fade-up delay-300">
-                <span id="share-btn-text">SHARE STORY</span>
-            </button>
-            <button onclick="replayStory()"
-                class="text-white/70 hover:text-white mt-4 flex items-center gap-2 interactive animate-fade-up delay-500">
-                <span class="text-2xl">↺</span> Watch Again
-            </button>
+            <div id="video-end-screen"
+                class="hidden absolute inset-0 flex-col items-center justify-center bg-black/90 w-full h-full gap-6 z-40">
+                <button onclick="shareVideoFile()"
+                    class="flex items-center gap-2 bg-green-600 text-white px-8 py-4 rounded-full font-bold tracking-widest interactive active:scale-95 animate-fade-up delay-300 shadow-[0_0_20px_rgba(22,163,74,0.5)]">
+                    <span id="share-btn-text">SHARE STORY</span>
+                </button>
+                <div class="flex gap-8 mt-4">
+                    <button onclick="replayStory()"
+                        class="text-white/70 hover:text-white flex flex-col items-center gap-2 interactive animate-fade-up delay-500 text-sm tracking-widest transition">
+                        <span class="text-3xl">↺</span> Watch Again
+                    </button>
+                    <button onclick="closeStory()"
+                        class="text-white/70 hover:text-white flex flex-col items-center gap-2 interactive animate-fade-up delay-500 text-sm tracking-widest transition">
+                        <span class="text-3xl">✕</span> Return to Scanner
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
