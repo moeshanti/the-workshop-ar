@@ -151,12 +151,12 @@
             100% { filter: blur(0px); opacity: 1; transform: scale(1); }
         }
         @keyframes etherealPulse {
-            0% { transform: translateY(-4px) scale(0.95); filter: brightness(1) contrast(1); }
-            50% { transform: translateY(4px) scale(1.12); filter: brightness(3) contrast(1.2); }
-            100% { transform: translateY(-4px) scale(0.95); filter: brightness(1) contrast(1); }
+            0% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.10); filter: brightness(1.7); }
+            100% { transform: scale(1); filter: brightness(1); }
         }
         .animate-focus-pull { animation: focusPull 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-        .animate-ethereal { animation: etherealPulse 6s ease-in-out infinite; }
+        .animate-ethereal { animation: etherealPulse 5s ease-in-out infinite; }
 
         @media screen and (orientation: portrait) {
             .force-landscape {
@@ -425,16 +425,24 @@
             if (isCardOpen) return;
             isCardOpen = true;
             const card = document.getElementById('info-card');
-            card.classList.remove('translate-y-full');
+            card.classList.remove('translate-y-[calc(100%-80px)]');
             card.classList.add('translate-y-0');
+            document.getElementById('chevron-teaser').classList.remove('animate-bounce');
         }
 
         function closeCard(e) {
             if (e) { e.preventDefault(); e.stopPropagation(); }
             isCardOpen = false;
             const card = document.getElementById('info-card');
-            card.classList.add('translate-y-full');
+            card.classList.add('translate-y-[calc(100%-80px)]');
             card.classList.remove('translate-y-0');
+            // Re-trigger bounce gently
+            setTimeout(() => {
+                const teaser = document.getElementById('chevron-teaser');
+                teaser.classList.remove('animate-bounce');
+                void teaser.offsetWidth; // force reflow
+                teaser.classList.add('animate-bounce');
+            }, 500);
         }
         window.closeCard = closeCard;
 
@@ -654,8 +662,9 @@
 
     <!-- IDLE SCREEN OVERLAY -->
     <div id="idle-screen" class="fixed inset-0 bg-black/90 z-[90] flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-1000 hidden">
-        <div class="animate-focus-pull opacity-50">
-            <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 animate-ethereal">
+        <div class="animate-focus-pull opacity-50 relative flex items-center justify-center">
+            <div class="absolute w-40 h-40 bg-white/20 rounded-full blur-[40px] animate-pulse"></div>
+            <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 relative z-10 animate-ethereal">
         </div>
         <p class="text-white/50 mt-8 tracking-widest text-sm font-light uppercase animate-focus-pull delay-300">Tap anywhere to wake</p>
     </div>
@@ -683,8 +692,11 @@
         </div>
 
         <!-- Structural Div to decouple animations -->
-        <div class="mb-12 animate-focus-pull">
-            <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-48 animate-ethereal">
+        <div class="mb-20 mt-12 relative flex items-center justify-center animate-focus-pull w-full">
+            <!-- Ambient Slow Pulse Glow -->
+            <div class="absolute w-40 h-40 bg-white/20 rounded-full blur-[40px] animate-pulse pointer-events-none delay-500"></div>
+            <!-- Main Logo -->
+            <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-56 relative z-10 animate-ethereal">
         </div>
         <button id="btn-enter" onclick="enterExperience()"
             class="border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95"
@@ -750,9 +762,15 @@
 
         <!-- Instructional Arrow pointing down to Safari bar -->
         <div class="flex flex-col items-center pb-8 animate-focus-pull delay-100">
-            <p class="text-white font-bold tracking-widest text-sm text-center mb-6">1. Tap the Share icon below <br><span class="text-2xl mt-2 block animate-zen-float text-blue-400">⍐</span></p>
-            <p class="text-white font-bold tracking-widest text-sm text-center mb-4">2. Select "Add to Home Screen" <br><span class="text-2xl mt-2 block animate-zen-float text-gray-400">⊞</span></p>
-            <div class="text-white/30 text-4xl mt-4 animate-bounce">↓</div>
+            <div class="flex items-center gap-3 text-white font-bold tracking-widest text-xs text-center mb-6 border border-white/20 bg-white/5 py-3 px-6 rounded-full w-72 justify-between">
+                <span>1. Tap Safari Share</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6 text-blue-400"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+            </div>
+            <div class="flex items-center gap-3 text-white font-bold tracking-widest text-xs text-center mb-4 border border-white/20 bg-white/5 py-3 px-6 rounded-full w-72 justify-between">
+                <span>2. Add to Home Screen</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-6 h-6 text-gray-300"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /><rect x="3" y="3" width="18" height="18" rx="4" stroke-width="1.5" stroke="currentColor"/></svg>
+            </div>
+            <div class="text-white/30 text-4xl mt-4 animate-bounce font-light">↓</div>
         </div>
     </div>
 
@@ -760,8 +778,15 @@
     <div id="video-modal" class="modal-overlay">
         <!-- Wrapper enforces landscape -->
         <div class="force-landscape flex flex-col items-center justify-center relative bg-black w-full h-full">
+            
+            <!-- Quick Share Overlay Icon -->
+            <button onclick="shareVideoFile()" class="absolute top-6 left-6 text-white bg-black/40 backdrop-blur w-14 aspect-square rounded-full flex items-center justify-center z-50 interactive border border-white/20 active:scale-95 transition hover:bg-black/80 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+            </button>
+
+            <!-- Close Video Icon -->
             <button onclick="closeStory()"
-                class="absolute top-6 right-6 text-white text-3xl z-50 p-4 interactive font-bold">✕</button>
+                class="absolute top-6 right-6 text-white text-2xl z-50 w-14 aspect-square bg-black/40 backdrop-blur border border-white/20 rounded-full flex items-center justify-center interactive font-light hover:bg-black/80 active:scale-95 transition shadow-[0_0_15px_rgba(0,0,0,0.5)]">✕</button>
 
             <!-- playsinline added back so iOS stays inside the CSS forced rotation wrapper -->
             <video id="story-video" class="w-full h-full object-contain bg-black" playsinline controls></video>
@@ -779,7 +804,8 @@
                     </button>
                     <button onclick="closeStory()"
                         class="text-white/70 hover:text-white flex flex-col items-center gap-2 interactive animate-fade-up delay-500 text-sm tracking-widest transition">
-                        <span class="text-3xl">✕</span> Return to Scanner
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 mb-[2px]"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" /></svg>
+                        Return to Scanner
                     </button>
                 </div>
             </div>
@@ -845,17 +871,31 @@
 
         <!-- Info Card -->
         <div id="info-card"
-            class="interactive bg-white/10 backdrop-blur-3xl border border-white/30 rounded-3xl p-6 text-white shadow-2xl transform translate-y-full transition-transform duration-500 ease-out relative">
+            class="interactive bg-white/10 backdrop-blur-3xl border border-t-[1px] border-white/30 rounded-t-3xl pt-8 px-6 text-white shadow-2xl transform translate-y-[calc(100%-80px)] transition-transform duration-500 ease-out relative w-full h-[500px]">
+            
+            <!-- Up Chevron Teaser Tab -->
+            <div id="chevron-teaser" onclick="openCard()" ontouchstart="openCard()" class="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-10 flex items-center justify-center interactive animate-bounce cursor-pointer z-50" style="pointer-events: auto !important;">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8 text-white"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+            </div>
+
+            <!-- Down Chevron Close Button -->
             <button id="btn-close" onclick="window.closeCard(event)" ontouchstart="window.closeCard(event)"
-                class="interactive absolute top-4 right-4 bg-black/40 w-10 h-10 rounded-full flex items-center justify-center text-white z-50 shadow-md border border-white/20"
-                style="pointer-events: auto !important; cursor: pointer;">✕</button>
+                class="interactive absolute top-6 right-6 bg-black/40 w-10 h-10 rounded-full flex items-center justify-center text-white z-50 shadow-md border border-white/20 hover:bg-black/80 transition"
+                style="pointer-events: auto !important; cursor: pointer;">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            </button>
             <div class="mb-4">
                 <h2 id="lbl-title" class="text-2xl font-light mb-1">...</h2>
                 <p id="lbl-artist" class="text-white/60 text-sm font-medium tracking-wide uppercase">...</p>
             </div>
+            
             <button onclick="watchStory()"
                 class="w-full border border-white/30 bg-white/5 text-white py-2 rounded-lg mb-2 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
-                <span>▶ WATCH STORY</span>
+                <span>▶ WATCH THE STORY IN VIDEO</span>
+            </button>
+            <button onclick="shareVideoFile()"
+                class="w-full border border-green-500/50 outline outline-[-1px] outline-transparent bg-green-900/40 text-green-100 py-2 rounded-lg mb-4 text-xs font-bold tracking-widest hover:bg-green-800/60 interactive flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(22,163,74,0.2)]">
+                <span><svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg> SHARE STORY</span>
             </button>
             <button onclick="openCatalog()"
                 class="w-full border border-white/30 bg-white/5 text-white py-2 rounded-lg mb-4 text-xs font-bold tracking-widest hover:bg-white/10 interactive flex items-center justify-center gap-2">
