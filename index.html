@@ -85,8 +85,8 @@
                             uniforms: {
                                 colorTexture: { value: texture },
                                 colorToReplace: { value: new THREE.Color(0x00FF00) },
-                                threshold: { value: 0.4 },
-                                smoothing: { value: 0.15 }
+                                threshold: { value: 0.15 },
+                                smoothing: { value: 0.2 }
                             },
                             vertexShader: `
                                 varying vec2 vUv;
@@ -106,7 +106,7 @@
                                     vec4 color = texture2D(colorTexture, vUv);
                                     float dist = distance(color.rgb, colorToReplace);
                                     float alpha = smoothstep(threshold, threshold + smoothing, dist);
-                                    if (alpha < 0.05) discard;
+                                    if (alpha < 0.01) discard;
                                     
                                     // Spill reduction: reduce green channel where it exceeds red/blue
                                     color.g = min(color.g, max(color.r, color.b));
@@ -166,13 +166,38 @@
 
         /* 3. AR LAYER */
         .a-canvas {
-            width: 100% !important;
-            height: 100% !important;
-            position: absolute !important;
+            width: 100dvw !important;
+            height: 100dvh !important;
+            min-width: 100vw !important;
+            min-height: 100vh !important;
+            position: fixed !important;
             top: 0 !important;
             left: 0 !important;
             z-index: 1 !important;
             background: transparent !important;
+            object-fit: cover !important;
+        }
+
+        /* Ensure MindAR camera feed strictly locks to viewport */
+        body > video, a-scene video {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100dvw !important;
+            height: 100dvh !important;
+            min-width: 100vw !important;
+            min-height: 100vh !important;
+            object-fit: cover !important;
+            z-index: -1;
+        }
+
+        /* Protect <a-assets> invisible video elements */
+        a-assets video {
+            position: static !important;
+            width: auto !important;
+            height: auto !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
         }
 
         #ui-layer {
@@ -746,10 +771,22 @@
                     if (activeAudio && !activeAudio.paused) fadeAudio(activeAudio, 0, 500);
                     const video = document.getElementById('story-video');
                     if (video && !video.paused) video.pause();
+
+                    // Prevent iOS specific WebGL crash/mem-leak: Pause AR video textures when asleep
+                    const bgV = document.getElementById('bgVideo');
+                    const bflyV = document.getElementById('butterflyVideo');
+                    if (bgV) bgV.pause();
+                    if (bflyV) bflyV.pause();
                 } else {
                     if (isTargetFound && !isVideoActive && !isStoryMode && activeAudio) {
                         fadeAudio(activeAudio, 1, 1000);
                     }
+
+                    // Resume AR video textures dynamically safely upon wake
+                    const bgV = document.getElementById('bgVideo');
+                    const bflyV = document.getElementById('butterflyVideo');
+                    if (bgV) bgV.play().catch(e => console.log("bgVideo resume blocked", e));
+                    if (bflyV) bflyV.play().catch(e => console.log("butterflyVideo resume blocked", e));
                 }
             });
 
