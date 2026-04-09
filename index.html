@@ -85,8 +85,8 @@
                             uniforms: {
                                 colorTexture: { value: texture },
                                 colorToReplace: { value: new THREE.Color(0x00FF00) },
-                                threshold: { value: 0.1 },
-                                smoothing: { value: 0.2 }
+                                threshold: { value: 0.4 },
+                                smoothing: { value: 0.15 }
                             },
                             vertexShader: `
                                 varying vec2 vUv;
@@ -104,9 +104,13 @@
                                 
                                 void main() {
                                     vec4 color = texture2D(colorTexture, vUv);
-                                    float diff = length(color.rgb - colorToReplace);
-                                    float alpha = smoothstep(threshold, threshold + smoothing, diff);
-                                    if (alpha < 0.1) discard;
+                                    float dist = distance(color.rgb, colorToReplace);
+                                    float alpha = smoothstep(threshold, threshold + smoothing, dist);
+                                    if (alpha < 0.05) discard;
+                                    
+                                    // Spill reduction: reduce green channel where it exceeds red/blue
+                                    color.g = min(color.g, max(color.r, color.b));
+                                    
                                     gl_FragColor = vec4(color.rgb, alpha);
                                 }
                             `,
@@ -138,8 +142,8 @@
         body {
             margin: 0;
             padding: 0;
-            width: 100%;
-            height: 100%;
+            width: 100dvw;
+            height: 100dvh;
             overflow: hidden;
             background-color: black;
         }
@@ -343,9 +347,16 @@
 
         function playAmbientAudio(index) {
             const newAudio = document.getElementById(`bg-audio-${index}`);
-            if (activeAudio && activeAudio !== newAudio) {
-                fadeAudio(activeAudio, 0, 500);
-            }
+            
+            // Strictly mutually exclusive audio engine (fixing the overlap race condition)
+            document.querySelectorAll('audio[id^="bg-audio-"]').forEach((aud) => {
+                if (aud !== newAudio) {
+                    clearInterval(aud.fadeInterval);
+                    aud.volume = 0;
+                    aud.pause();
+                }
+            });
+
             if (newAudio && !isStoryMode) {
                 newAudio.volume = 0;
                 fadeAudio(newAudio, 1, 1500);
@@ -746,6 +757,18 @@
             document.body.addEventListener('click', resetIdleTimer, true);
             document.body.addEventListener('touchstart', resetIdleTimer, true);
             resetIdleTimer(); 
+
+            // Phase 15: iOS Orientation Lock fix
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => {
+                    const sceneEl = document.querySelector('a-scene');
+                    if (sceneEl && sceneEl.camera) {
+                        sceneEl.resize();
+                        // Force projection matrix update to fix aspect ratio flip
+                        sceneEl.camera.updateProjectionMatrix();
+                    }
+                }, 300); // Wait for Safari UI to settle
+            });
 
             // Initial setup
             updateUI(0);
