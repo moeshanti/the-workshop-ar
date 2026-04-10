@@ -72,12 +72,10 @@
                     const obj = this.el.getObject3D('mesh');
                     if (!obj) return;
                     
-                    const bgVideo = document.querySelector('#bgVideo');
                     const butterflyVideo = document.querySelector('#butterflyVideo');
                     
-                    if (!bgVideo || !butterflyVideo) return;
+                    if (!butterflyVideo) return;
                     
-                    const bgTex = new THREE.VideoTexture(bgVideo);
                     const bflyTex = new THREE.VideoTexture(butterflyVideo);
                     
                     const createChromaMaterial = (texture) => {
@@ -91,7 +89,7 @@
                             vertexShader: `
                                 varying vec2 vUv;
                                 void main() {
-                                    vUv = uv;
+                                    vUv = vec2(uv.x, 1.0 - uv.y);
                                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                                 }
                             `,
@@ -115,23 +113,79 @@
                                 }
                             `,
                             transparent: true,
+                            depthWrite: true,
+                            depthTest: true,
                             side: THREE.DoubleSide
                         });
                     };
 
-                    const bgMat = createChromaMaterial(bgTex);
                     const bflyMat = createChromaMaterial(bflyTex);
 
                     obj.traverse((node) => {
                         if (node.isMesh && node.material) {
-                            if (node.material.name === 'cloud0_Mat') {
-                                node.material = bgMat;
-                            } else if (node.material.name === 'Butterfly_Mat') {
+                            if (node.material.name === 'Butterfly_Mat') {
                                 node.material = bflyMat;
                             }
                         }
                     });
                 });
+            }
+        });
+
+        AFRAME.registerComponent("target-control", {
+            init() {
+                this.video = document.querySelector("#butterflyVideo");
+                this.model = this.el.querySelector("a-gltf-model");
+
+                this.mixer = null;
+
+                const waitForMixer = () => {
+                    if (!this.model) {
+                        requestAnimationFrame(waitForMixer);
+                        return;
+                    }
+                    const comp = this.model.components["animation-mixer"];
+                    if (!comp || !comp.mixer) {
+                        requestAnimationFrame(waitForMixer);
+                        return;
+                    }
+
+                    this.mixer = comp.mixer;
+
+                    this.video.pause();
+                    this.video.currentTime = 0;
+                };
+
+                waitForMixer();
+
+                this.el.addEventListener("targetFound", () => {
+                    if (typeof isVideoActive !== "undefined" && isVideoActive) return; // Prevent target spinning when video playing
+                    this.video.currentTime = 0;
+                    this.video.play();
+                });
+
+                this.el.addEventListener("targetLost", () => {
+                    this.video.pause();
+                    this.video.currentTime = 0; // Force video rewind
+                    if (this.mixer) {
+                        this.mixer.setTime(0); // Force 3D geometry rewind
+                        this.mixer.update(0);
+                    }
+                });
+
+                this.video.addEventListener("ended", () => {
+                    this.video.currentTime = 0;
+                    this.video.play();
+                });
+            },
+
+            tick() {
+                if (!this.mixer || this.video.paused) return;
+
+                const t = this.video.currentTime;
+
+                this.mixer.setTime(t);
+                this.mixer.update(0);
             }
         });
     </script>
@@ -450,10 +504,15 @@
             }
 
             // Phase 12+: Video Textures Unlock for iOS
-            const bgVid = document.getElementById('bgVideo');
             const bflyVid = document.getElementById('butterflyVideo');
-            if(bgVid) bgVid.play().catch(e => console.log("bgVideo unlock blocked", e));
-            if(bflyVid) bflyVid.play().catch(e => console.log("butterflyVideo unlock blocked", e));
+            if(bflyVid) {
+                bflyVid.volume = 0;
+                bflyVid.load();
+                const playPromise = bflyVid.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => { bflyVid.pause(); }).catch(e => console.log("butterflyVideo unlock blocked", e));
+                }
+            }
 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
@@ -650,6 +709,9 @@
             isVideoActive = true;
             pauseAmbientAudio(true); // Phase 8 Fix: Instantly kill AR music to avoid overlap with video
             
+            const bflyVid = document.getElementById('butterflyVideo');
+            if (bflyVid) bflyVid.pause();
+            
             video.play().catch(e => console.log("Auto-play prevented", e));
             video.muted = false;
 
@@ -679,6 +741,12 @@
             isVideoActive = false;
             closeVideoDrawer(); // Clean up state
             resumeAmbientAudio(); // Restore ambient music
+
+            if (isTargetFound) {
+                const bflyVid = document.getElementById('butterflyVideo');
+                if (bflyVid) bflyVid.play().catch(e => console.log("AR resume blocked", e));
+            }
+
             if (isStoryMode) {
                 document.getElementById('visit-cta').style.display = 'flex';
             }
@@ -759,6 +827,9 @@
                 }
             } finally {
                 if(btnText) btnText.innerText = originalText;
+                if (typeof isTargetFound !== "undefined" && isTargetFound && !isVideoActive && !isStoryMode) {
+                    resumeAmbientAudio();
+                }
             }
         }
 
@@ -773,20 +844,16 @@
                     if (video && !video.paused) video.pause();
 
                     // Prevent iOS specific WebGL crash/mem-leak: Pause AR video textures when asleep
-                    const bgV = document.getElementById('bgVideo');
                     const bflyV = document.getElementById('butterflyVideo');
-                    if (bgV) bgV.pause();
                     if (bflyV) bflyV.pause();
                 } else {
-                    if (isTargetFound && !isVideoActive && !isStoryMode && activeAudio) {
-                        fadeAudio(activeAudio, 1, 1000);
+                    if (isTargetFound && !isVideoActive && !isStoryMode) {
+                        if (activeAudio) fadeAudio(activeAudio, 1, 1000);
+                        
+                        // Resume AR video textures dynamically safely upon wake
+                        const bflyV = document.getElementById('butterflyVideo');
+                        if (bflyV) bflyV.play().catch(e => console.log("butterflyVideo resume blocked", e));
                     }
-
-                    // Resume AR video textures dynamically safely upon wake
-                    const bgV = document.getElementById('bgVideo');
-                    const bflyV = document.getElementById('butterflyVideo');
-                    if (bgV) bgV.play().catch(e => console.log("bgVideo resume blocked", e));
-                    if (bflyV) bflyV.play().catch(e => console.log("butterflyVideo resume blocked", e));
                 }
             });
 
@@ -1077,8 +1144,7 @@
         vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 
         <a-assets>
-            <video id="bgVideo" src="./assets/Background.mp4" autoplay muted loop playsinline crossorigin="anonymous"></video>
-            <video id="butterflyVideo" src="./assets/Butterfly.mp4" autoplay muted loop playsinline crossorigin="anonymous"></video>
+            <video id="butterflyVideo" src="./assets/Butterfly.mp4" muted playsinline crossorigin="anonymous"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -1086,9 +1152,9 @@
         <a-light type="directional" position="1 2 1" intensity="1.8"></a-light>
 
         <!-- Target 0: Butterfly Voyage -->
-        <a-entity id="target-0" mindar-image-target="targetIndex: 0">
+        <a-entity id="target-0" mindar-image-target="targetIndex: 0" target-control>
             <a-gltf-model src="./assets/The_Star.glb" video-material-handler position="0 0 0" scale="1 1 1"
-                animation-mixer="clip: *; loop: repeat"></a-gltf-model>
+                animation-mixer="clip: *; loop: repeat; timeScale: 0"></a-gltf-model>
         </a-entity>
 
         <!-- Target 1: The Second Painting -->
