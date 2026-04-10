@@ -2,18 +2,18 @@
 
 An immersive WebAR and "Living Canvas" experience.
 
-## 🚀 Tech Stack
+## Tech Stack
 
 This project is built on a modern, headless web architecture:
 
-* **Development Environment:** Antigravity IDE
+* **Development Environment:** Antigravity
 * **Database & Backend:** Supabase
 * **Deployment & Hosting:** Netlify
-* **Media Assets:** Composited AR elements utilizing advanced video generation workflows (Pika Art, Kling AI, etc.)
+* **Media Assets:** Composited AR elements utilizing advanced video generation workflows (Done mainly manually and ulized some Ai platforms for testing and optimization)
 
 ## 🛠️ Getting Started
 
 *(Add your local environment setup, necessary Supabase environment variables, and run commands here once the project is ready for others to clone.)*
 
 ---
-*Deveoped by Mohammad Elshanti- AJ Squared*
+*Developed and architected by Mohammad Elshanti- AJ Squared- many thanks to Shalesh for the hard work on the motion videos and AR generation*
