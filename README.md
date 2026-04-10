@@ -1,11 +1,19 @@
-<div align="center">
+# The Workshop AR- Fann-A-Porter AR Experience
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+An immersive WebAR and "Living Canvas" experience.
 
-  <h1>Built with AI Studio</h2>
+## 🚀 Tech Stack
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+This project is built on a modern, headless web architecture:
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+* **Development Environment:** Antigravity IDE
+* **Database & Backend:** Supabase
+* **Deployment & Hosting:** Netlify
+* **Media Assets:** Composited AR elements utilizing advanced video generation workflows (Pika Art, Kling AI, etc.)
 
-</div>
+## 🛠️ Getting Started
+
+*(Add your local environment setup, necessary Supabase environment variables, and run commands here once the project is ready for others to clone.)*
+
+---
+*Deveoped by Mohammad Elshanti- AJ Squared*
