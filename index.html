@@ -625,6 +625,8 @@
         function onTargetLost(index) {
             console.log("Target Lost: " + index);
             isTargetFound = false;
+            if (window.cardTimer) clearTimeout(window.cardTimer);
+            if (window.closeTimer) clearTimeout(window.closeTimer);
             if (!isVideoActive) {
                 pauseAmbientAudio(true); // Phase 8 Fix: Instant mute to prevent audio overlap/leak
             }
