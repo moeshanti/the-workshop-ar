@@ -668,6 +668,7 @@
         // --- CARD LOGIC ---
         function openCard() {
             if (window.closeTimer) { clearTimeout(window.closeTimer); window.closeTimer = null; }
+            if (window.cardTimer) { clearTimeout(window.cardTimer); window.cardTimer = null; } // Prevent Ghost Guillotine
             if (isCardOpen) return;
             isCardOpen = true;
             const card = document.getElementById('info-card');
