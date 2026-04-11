@@ -154,8 +154,14 @@
                     this.mixer = comp.mixer;
                     // Programmatically pause A-Frame's auto-loop safely
                     this.el.components["animation-mixer"].pause();
-                    this.video.pause();
-                    this.video.currentTime = 0;
+                    
+                    // FIX: Respect live tracking state if target was found before GLB finished parsing
+                    if (typeof isTargetFound !== "undefined" && isTargetFound && window.currentArtworkIndex === 0) {
+                        if (this.video.paused) this.video.play().catch(e => console.log("Genesis auto-play blocked", e));
+                    } else {
+                        this.video.pause();
+                        this.video.currentTime = 0;
+                    }
                 };
 
                 waitForMixer();
