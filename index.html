@@ -396,7 +396,7 @@
                 shareCaption: "Witness the magic of Majd Kurdieh come to life! ✨🦋 #FannAPorter #ARArt",
                 whatsappNumber: "971559522980",
                 catalogUrl: "https://privateviews.artlogic.net/fannaporter/b6c586b47457fbeaa95a60?inc_prices=1&s=c57d462e0fec509dfb6cc8248109815a95adfffd0b5566b75ad8462e166e31b17894da30585cb2eaf1b96b0c473bd33342dda34739d6f472ee80c9966b41a6fe",
-                websiteUrl: "https://www.theworkshopdubai.com/"
+                websiteUrl: "https://www.fannaporter.com/"
             },
             {
                 // Object 1: Two Skies
@@ -407,7 +407,7 @@
                 shareCaption: "Witness 'Two Skies' by Majd Kurdieh come to life! ✨☁️ #FannAPorter #MajdKurdieh #TwoSkies",
                 whatsappNumber: "971559522980",
                 catalogUrl: "https://www.theworkshopdubai.com/",
-                websiteUrl: "https://www.theworkshopdubai.com/"
+                websiteUrl: "https://www.fannaporter.com/"
             }
         ];
 
@@ -861,6 +861,13 @@
         function openCatalog() {
             window.open(window.ARTWORK_DATA[window.currentArtworkIndex].catalogUrl, '_blank');
         }
+
+        function openWebsite() {
+            const url = window.ARTWORK_DATA[window.currentArtworkIndex || 0].websiteUrl;
+            if (url) window.open(url, '_blank');
+        }
+        // Expose to global scope for HTML onclick
+        window.openWebsite = openWebsite;
 
         // --- SMART SHARE LOGIC ---
         let isSharing = false;
