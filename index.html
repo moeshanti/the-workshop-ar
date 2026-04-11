@@ -8,6 +8,7 @@
     <title>Fann À Porter | AR Companion</title>
 
     <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -410,6 +411,7 @@
         let isStoryMode = false;
         let isVideoActive = false; // Phase 3 Fix: Locks ambient audio when video is playing
         let isTargetFound = false; // Phase 4 Fix: Verifies camera lock
+        let hasEnteredExperience = false;
 
         // --- PHASE 3: IDLE & AUDIO ENGINES ---
         let idleTimer;
@@ -481,7 +483,9 @@
 
             if (newAudio && !isStoryMode) {
                 newAudio.volume = 0;
-                fadeAudio(newAudio, 1, 1500);
+                if (hasEnteredExperience) {
+                    fadeAudio(newAudio, 1, 1500);
+                }
                 activeAudio = newAudio;
             }
         }
@@ -561,6 +565,9 @@
                 }
             }
 
+            hasEnteredExperience = true;
+            resumeAmbientAudio();
+
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
             document.body.style.backgroundColor = 'transparent';
@@ -608,7 +615,10 @@
 
                 window.cardTimer = setTimeout(() => {
                     openCard();
-                }, 15000); // 15 seconds delay
+                    window.closeTimer = setTimeout(() => {
+                        closeCard();
+                    }, 2500);
+                }, 25000); // 25 seconds initial delay
             }
         }
 
@@ -649,10 +659,11 @@
 
         // --- CARD LOGIC ---
         function openCard() {
+            if (window.closeTimer) clearTimeout(window.closeTimer);
             if (isCardOpen) return;
             isCardOpen = true;
             const card = document.getElementById('info-card');
-            card.classList.remove('translate-y-[calc(100%-115px)]');
+            card.classList.remove('translate-y-[calc(100%-75px)]');
             card.classList.add('translate-y-0');
 
             const act = document.getElementById('info-card-actions');
@@ -671,10 +682,11 @@
         }
 
         function closeCard(e) {
+            if (window.closeTimer) clearTimeout(window.closeTimer);
             if (e) { e.preventDefault(); e.stopPropagation(); }
             isCardOpen = false;
             const card = document.getElementById('info-card');
-            card.classList.add('translate-y-[calc(100%-115px)]');
+            card.classList.add('translate-y-[calc(100%-75px)]');
             card.classList.remove('translate-y-0');
 
             const act = document.getElementById('info-card-actions');
@@ -932,6 +944,16 @@
                     openCard();
                 }
             });
+
+            // Protect Peek from Manual Drawer Touches
+            const infoCardEl = document.getElementById('info-card');
+            if (infoCardEl) {
+                const killCloseTimer = () => {
+                    if (window.closeTimer) clearTimeout(window.closeTimer);
+                };
+                infoCardEl.addEventListener('touchstart', killCloseTimer, {passive: true});
+                infoCardEl.addEventListener('mousedown', killCloseTimer);
+            }
 
             // Bind AR Events
             const target0 = document.getElementById('target-0');
@@ -1277,7 +1299,7 @@
 
         <!-- Info Card -->
         <div id="info-card"
-            class="interactive bg-white/10 backdrop-blur-3xl border border-t-[1px] border-white/30 rounded-t-3xl pt-14 px-6 text-white shadow-2xl transform translate-y-[calc(100%-115px)] transition-transform duration-500 ease-out relative w-full h-[500px]">
+            class="interactive bg-white/10 backdrop-blur-3xl border border-t-[1px] border-white/30 rounded-t-3xl pt-14 px-6 text-white shadow-2xl transform translate-y-[calc(100%-75px)] transition-transform duration-500 ease-out relative w-full h-[500px]">
 
             <!-- Apple Bottom-Sheet Handle (Top Center) -->
             <button id="drawer-handle" onclick="window.toggleCard(event)" ontouchstart="window.toggleCard(event)"
