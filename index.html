@@ -646,7 +646,7 @@
             if (scanBorder) scanBorder.classList.add('animate-scan');
 
             const scanGuide = document.getElementById('scan-guide');
-            if (scanGuide) scanGuide.classList.remove('opacity-0');
+            if (!isCardOpen && scanGuide) scanGuide.classList.remove('opacity-0');
         }
 
         function updateUI(index) {
@@ -711,6 +711,12 @@
             if (act) {
                 act.classList.add('opacity-0', 'pointer-events-none');
                 act.classList.remove('opacity-100', 'pointer-events-auto');
+            }
+
+            // UI Reconciliation: Revive scanner if drawer is closed while tracking is dead
+            if (!isTargetFound) {
+                const scanGuide = document.getElementById('scan-guide');
+                if (scanGuide) scanGuide.classList.remove('opacity-0');
             }
 
             const chev = document.getElementById('drawer-chevron');
