@@ -538,7 +538,7 @@
                 a0.load();
                 const playPromise0 = a0.play();
                 if (playPromise0 !== undefined) {
-                    playPromise0.then(() => { a0.pause(); }).catch(e => { console.log("Audio 0 unlock blocked", e); });
+                    playPromise0.then(() => { if (!isTargetFound) a0.pause(); }).catch(e => { console.log("Audio 0 unlock blocked", e); });
                 }
             }
             if (a1) {
@@ -546,7 +546,7 @@
                 a1.load();
                 const playPromise1 = a1.play();
                 if (playPromise1 !== undefined) {
-                    playPromise1.then(() => { a1.pause(); }).catch(e => { console.log("Audio 1 unlock blocked", e); });
+                    playPromise1.then(() => { if (!isTargetFound) a1.pause(); }).catch(e => { console.log("Audio 1 unlock blocked", e); });
                 }
             }
 
