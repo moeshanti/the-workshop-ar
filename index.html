@@ -439,6 +439,12 @@
                     idleScreen.style.pointerEvents = 'auto';
                 }, 50);
             }
+            // Force mechanical stasis to save battery
+            if (activeAudio && !activeAudio.paused) fadeAudio(activeAudio, 0, 500);
+            const video = document.getElementById('story-video');
+            if (video && !video.paused) video.pause();
+            const bflyV = document.getElementById('butterflyVideo');
+            if (bflyV) bflyV.pause();
         }
 
         function wakeUp() {
@@ -449,6 +455,14 @@
                 setTimeout(() => {
                     idleScreen.classList.add('hidden');
                 }, 1000);
+            }
+            // Resume mechanical engines dynamically
+            if (isTargetFound && !isVideoActive && !isStoryMode) {
+                if (activeAudio) fadeAudio(activeAudio, 1, 1000);
+                if (window.currentArtworkIndex === 0) {
+                    const bflyV = document.getElementById('butterflyVideo');
+                    if (bflyV) bflyV.play().catch(e => console.log("butterflyVideo resume blocked", e));
+                }
             }
         }
 
