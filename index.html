@@ -544,7 +544,7 @@
                 a0.load();
                 const playPromise0 = a0.play();
                 if (playPromise0 !== undefined) {
-                    playPromise0.then(() => { if (!isTargetFound) a0.pause(); }).catch(e => { console.log("Audio 0 unlock blocked", e); });
+                    playPromise0.then(() => { if (!isTargetFound || window.currentArtworkIndex !== 0) a0.pause(); }).catch(e => { console.log("Audio 0 unlock blocked", e); });
                 }
             }
             if (a1) {
@@ -552,7 +552,7 @@
                 a1.load();
                 const playPromise1 = a1.play();
                 if (playPromise1 !== undefined) {
-                    playPromise1.then(() => { if (!isTargetFound) a1.pause(); }).catch(e => { console.log("Audio 1 unlock blocked", e); });
+                    playPromise1.then(() => { if (!isTargetFound || window.currentArtworkIndex !== 1) a1.pause(); }).catch(e => { console.log("Audio 1 unlock blocked", e); });
                 }
             }
 
@@ -564,7 +564,7 @@
                 const playPromise = bflyVid.play();
                 if (playPromise !== undefined) {
                     playPromise.then(() => {
-                        if (!isTargetFound) {
+                        if (!isTargetFound || window.currentArtworkIndex !== 0) {
                             bflyVid.pause();
                         }
                     }).catch(e => console.log("butterflyVideo unlock blocked", e));
@@ -584,9 +584,9 @@
             document.getElementById('scan-guide').style.display = 'none';
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
+            watchStory(); // Execute synchronously to pass iOS Safari Trust Chain
             setTimeout(() => {
                 splash.style.display = 'none';
-                watchStory(); // Watches current default
             }, 1000);
         }
 
