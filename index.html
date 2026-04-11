@@ -626,7 +626,10 @@
             console.log("Target Lost: " + index);
             isTargetFound = false;
             if (window.cardTimer) clearTimeout(window.cardTimer);
-            if (window.closeTimer) clearTimeout(window.closeTimer);
+            if (window.closeTimer) {
+                clearTimeout(window.closeTimer);
+                closeCard();
+            }
             if (!isVideoActive) {
                 pauseAmbientAudio(true); // Phase 8 Fix: Instant mute to prevent audio overlap/leak
             }
@@ -804,8 +807,10 @@
             resumeAmbientAudio(); // Restore ambient music
 
             if (isTargetFound) {
-                const bflyVid = document.getElementById('butterflyVideo');
-                if (bflyVid) bflyVid.play().catch(e => console.log("AR resume blocked", e));
+                if (window.currentArtworkIndex === 0) {
+                    const bflyVid = document.getElementById('butterflyVideo');
+                    if (bflyVid) bflyVid.play().catch(e => console.log("AR resume blocked", e));
+                }
             }
 
             if (isStoryMode) {
@@ -891,6 +896,11 @@
                 if (typeof isTargetFound !== "undefined" && isTargetFound && !isVideoActive && !isStoryMode) {
                     resumeAmbientAudio();
                 }
+                // iOS Native Share Sheet Recovery for active video
+                if (typeof isVideoActive !== "undefined" && isVideoActive) {
+                    const storyVid = document.getElementById('story-video');
+                    if (storyVid && storyVid.paused) storyVid.play().catch(e => console.log("Story resume blocked", e));
+                }
             }
         }
 
@@ -912,8 +922,10 @@
                         if (activeAudio) fadeAudio(activeAudio, 1, 1000);
 
                         // Resume AR video textures dynamically safely upon wake
-                        const bflyV = document.getElementById('butterflyVideo');
-                        if (bflyV) bflyV.play().catch(e => console.log("butterflyVideo resume blocked", e));
+                        if (window.currentArtworkIndex === 0) {
+                            const bflyV = document.getElementById('butterflyVideo');
+                            if (bflyV) bflyV.play().catch(e => console.log("butterflyVideo resume blocked", e));
+                        }
                     }
                 }
             });
