@@ -538,7 +538,6 @@
                 const btn = document.getElementById('btn-enter');
                 btn.innerText = "WATCH STORY";
                 btn.onclick = enterStoryMode;
-                btn.ontouchstart = enterStoryMode;
 
                 // If specific painting shared (optional future logic), default to 0 for now
             }
@@ -680,7 +679,6 @@
 
             const btn = document.getElementById('btn-inquire');
             btn.onclick = () => window.open(url, '_blank');
-            btn.ontouchstart = () => window.open(url, '_blank');
 
             // Reset Stars
             for (let i = 1; i <= 5; i++) {
@@ -1277,7 +1275,7 @@
                         <span>WATCH AGAIN</span>
                     </button>
 
-                    <button onclick="window.closeStory(event)" ontouchstart="window.closeStory(event)"
+                    <button onclick="window.closeStory(event)"
                         class="w-full border border-white/20 bg-transparent text-white/70 font-medium tracking-wide py-4 rounded-xl active:scale-95 transition flex items-center justify-center gap-2 hover:bg-white/10 interactive">
                         <span>Return to AR Scanner</span>
                     </button>
@@ -1412,7 +1410,7 @@
                     class="w-full bg-white text-black font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 mb-3">
                     <span id="btn-text">Inquire</span>
                 </button>
-                <button onclick="window.closeCard(event)" ontouchstart="window.closeCard(event)"
+                <button onclick="window.closeCard(event)"
                     class="w-full border border-white/30 bg-transparent text-white/90 font-medium tracking-wide py-3 px-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 hover:bg-white/10"
                     style="pointer-events: auto !important;">
                     <span>Continue with AR</span>
