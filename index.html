@@ -35,12 +35,11 @@
             db = getFirestore(app);
         } catch (e) { console.error("Firebase Init Error", e); }
 
-        let hasRated = false;
+        let ratedArtworks = new Set();
         window.submitRating = async (stars) => {
-            if (typeof hasRated !== "undefined" && hasRated) return; // Prevent DB flooding
-            hasRated = true;
-            // Get current painting data for context
             const currentPaintingTitle = window.ARTWORK_DATA[window.currentArtworkIndex || 0].title;
+            if (ratedArtworks.has(currentPaintingTitle)) return; // Prevent DB flooding for this specific painting
+            ratedArtworks.add(currentPaintingTitle);
 
             for (let i = 1; i <= 5; i++) {
                 const star = document.getElementById(`star-${i}`);
@@ -614,11 +613,13 @@
 
         // --- AR TARGET LOGIC ---
         function onTargetFound(index) {
-            if (typeof isVideoActive !== "undefined" && isVideoActive) return;
-            // Protect UX: Do not swap targets if user is actively reading the card for a different artwork
-            if (isCardOpen && window.currentArtworkIndex !== index) return;
-            console.log("Target Found: " + index);
+            if (isCardOpen && window.currentArtworkIndex !== index) return; // Protect reading state
             isTargetFound = true;
+            window.currentArtworkIndex = index;
+            
+            if (typeof isVideoActive !== "undefined" && isVideoActive) return; // Prevent UI/Audio override
+            
+            console.log("Target Found: " + index);
             if (navigator.vibrate) navigator.vibrate(200); // Phase 3: Haptics
             if (!isVideoActive) {
                 playAmbientAudio(index); // Phase 3 Fix: Prevent overlapping audio
@@ -656,9 +657,10 @@
         }
 
         function onTargetLost(index) {
+            isTargetFound = false; // MUST update state before returning
             if (typeof isVideoActive !== "undefined" && isVideoActive) return;
+            
             console.log("Target Lost: " + index);
-            isTargetFound = false;
             if (window.cardTimer) { clearTimeout(window.cardTimer); window.cardTimer = null; }
             if (window.closeTimer) {
                 clearTimeout(window.closeTimer);

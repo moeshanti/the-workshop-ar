@@ -24,6 +24,10 @@ self.addEventListener('fetch', (event) => {
 
     // 2. Network-First for HTML navigation
     if (event.request.mode === 'navigate') {
+        if (event.request.method !== 'GET') {
+            event.respondWith(fetch(event.request));
+            return;
+        }
         event.respondWith(
             fetch(event.request)
                 .then((networkResponse) => {
