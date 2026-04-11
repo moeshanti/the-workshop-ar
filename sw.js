@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fann-ar-v1.2';
+const CACHE_NAME = 'fann-ar-v1.3';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -9,9 +9,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        return caches.delete(cacheName);
-                    }
+                    if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
                 })
             );
         }).then(() => self.clients.claim())
@@ -19,8 +17,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // 1. Explicitly skip ONLY Firebase/Google APIs to prevent opaque corruption of databases
-    if (event.request.url.includes('firestore.googleapis.com') || event.request.url.includes('google.com')) return;
+    // 1. Skip APIs and let Safari natively handle heavy .mp4 byte-range streaming
+    if (event.request.url.includes('firestore.googleapis.com') || 
+        event.request.url.includes('google.com') || 
+        event.request.url.endsWith('.mp4')) return;
 
     // 2. Network-First for HTML navigation
     if (event.request.mode === 'navigate') {
@@ -31,20 +31,17 @@ self.addEventListener('fetch', (event) => {
                         cache.put(event.request, networkResponse.clone());
                         return networkResponse;
                     });
-                })
-                .catch(() => caches.match(event.request))
+                }).catch(() => caches.match(event.request))
         );
         return;
     }
 
-    // 3. Cache-First with Support for Safari 206 Byte-Range & Status 0 Opaque CDNs
+    // 3. Cache-First for standard assets (Allow 200 and Status 0 Opaque CDNs)
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
             if (cachedResponse) return cachedResponse;
             return fetch(event.request).then((networkResponse) => {
-                // Allow 200 (Standard), 206 (Safari Video), and 0 (Opaque CDNs like Tailwind/A-Frame)
-                if (!networkResponse || 
-                   (networkResponse.status !== 200 && networkResponse.status !== 206 && networkResponse.status !== 0)) {
+                if (!networkResponse || (networkResponse.status !== 200 && networkResponse.status !== 0)) {
                     return networkResponse;
                 }
                 return caches.open(CACHE_NAME).then((cache) => {

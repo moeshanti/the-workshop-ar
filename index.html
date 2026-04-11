@@ -156,7 +156,7 @@
                     this.el.components["animation-mixer"].pause();
                     
                     // FIX: Respect live tracking state if target was found before GLB finished parsing
-                    if (typeof isTargetFound !== "undefined" && isTargetFound && window.currentArtworkIndex === 0) {
+                    if (typeof isTargetFound !== "undefined" && isTargetFound && window.currentArtworkIndex === 0 && (typeof isVideoActive === "undefined" || !isVideoActive)) {
                         if (this.video.paused) this.video.play().catch(e => console.log("Genesis auto-play blocked", e));
                     } else {
                         this.video.pause();
@@ -599,6 +599,7 @@
         }
 
         function enterStoryMode() {
+            hasEnteredExperience = true;
             document.getElementById('scan-guide').style.display = 'none';
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
