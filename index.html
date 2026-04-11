@@ -431,7 +431,10 @@
         }
 
         function goToSleep() {
-            if (typeof isVideoActive !== "undefined" && isVideoActive) return;
+            if (typeof isVideoActive !== "undefined" && isVideoActive) {
+                resetIdleTimer(); // Re-arm the heartbeat
+                return;
+            }
             const idleScreen = document.getElementById('idle-screen');
             if (idleScreen) {
                 idleScreen.classList.remove('hidden');
