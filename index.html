@@ -384,6 +384,12 @@
         .delay-500 {
             animation-delay: 0.5s;
         }
+
+        @keyframes magneticFloat {
+            0% { transform: translateY(0) scale(1); filter: drop-shadow(0 0px 0px rgba(255,255,255,0)) brightness(1); }
+            50% { transform: translateY(-8px) scale(1.12); filter: drop-shadow(0 15px 25px rgba(255,255,255,0.15)) brightness(1.2); }
+            100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0px 0px rgba(255,255,255,0)) brightness(1); }
+        }
     </style>
 
     <script>
@@ -695,9 +701,12 @@
             const btn = document.getElementById('btn-inquire');
             btn.onclick = () => window.open(url, '_blank');
 
-            // Reset Stars
+            // Reset visual rating state for the new artwork
+            const feedback = document.getElementById('feedback');
+            if (feedback) feedback.classList.add('opacity-0');
             for (let i = 1; i <= 5; i++) {
-                document.getElementById(`star-${i}`).classList.remove('text-yellow-400');
+                const star = document.getElementById(`star-${i}`);
+                if (star) star.classList.remove('text-yellow-400');
             }
         }
 
