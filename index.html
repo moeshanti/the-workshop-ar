@@ -617,7 +617,9 @@
                     openCard();
                     window.closeTimer = setTimeout(() => {
                         closeCard();
+                        window.closeTimer = null;
                     }, 2500);
+                    window.cardTimer = null;
                 }, 25000); // 25 seconds initial delay
             }
         }
@@ -625,9 +627,10 @@
         function onTargetLost(index) {
             console.log("Target Lost: " + index);
             isTargetFound = false;
-            if (window.cardTimer) clearTimeout(window.cardTimer);
+            if (window.cardTimer) { clearTimeout(window.cardTimer); window.cardTimer = null; }
             if (window.closeTimer) {
                 clearTimeout(window.closeTimer);
+                window.closeTimer = null;
                 closeCard();
             }
             if (!isVideoActive) {
@@ -664,7 +667,7 @@
 
         // --- CARD LOGIC ---
         function openCard() {
-            if (window.closeTimer) clearTimeout(window.closeTimer);
+            if (window.closeTimer) { clearTimeout(window.closeTimer); window.closeTimer = null; }
             if (isCardOpen) return;
             isCardOpen = true;
             const card = document.getElementById('info-card');
@@ -687,7 +690,7 @@
         }
 
         function closeCard(e) {
-            if (window.closeTimer) clearTimeout(window.closeTimer);
+            if (window.closeTimer) { clearTimeout(window.closeTimer); window.closeTimer = null; }
             if (e) { e.preventDefault(); e.stopPropagation(); }
             isCardOpen = false;
             const card = document.getElementById('info-card');
@@ -963,7 +966,7 @@
             const infoCardEl = document.getElementById('info-card');
             if (infoCardEl) {
                 const killCloseTimer = () => {
-                    if (window.closeTimer) clearTimeout(window.closeTimer);
+                    if (window.closeTimer) { clearTimeout(window.closeTimer); window.closeTimer = null; }
                 };
                 infoCardEl.addEventListener('touchstart', killCloseTimer, {passive: true});
                 infoCardEl.addEventListener('mousedown', killCloseTimer);
