@@ -35,7 +35,10 @@
             db = getFirestore(app);
         } catch (e) { console.error("Firebase Init Error", e); }
 
+        let hasRated = false;
         window.submitRating = async (stars) => {
+            if (typeof hasRated !== "undefined" && hasRated) return; // Prevent DB flooding
+            hasRated = true;
             // Get current painting data for context
             const currentPaintingTitle = window.ARTWORK_DATA[window.currentArtworkIndex || 0].title;
 
@@ -612,6 +615,8 @@
         // --- AR TARGET LOGIC ---
         function onTargetFound(index) {
             if (typeof isVideoActive !== "undefined" && isVideoActive) return;
+            // Protect UX: Do not swap targets if user is actively reading the card for a different artwork
+            if (isCardOpen && window.currentArtworkIndex !== index) return;
             console.log("Target Found: " + index);
             isTargetFound = true;
             if (navigator.vibrate) navigator.vibrate(200); // Phase 3: Haptics
