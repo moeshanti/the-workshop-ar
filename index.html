@@ -605,11 +605,10 @@
 
         // --- AR TARGET LOGIC ---
         function onTargetFound(index) {
+            if (typeof isVideoActive !== "undefined" && isVideoActive) return; // Prevent UI/Audio override
             if (isCardOpen && window.currentArtworkIndex !== index) return; // Protect reading state
             isTargetFound = true;
             window.currentArtworkIndex = index;
-            
-            if (typeof isVideoActive !== "undefined" && isVideoActive) return; // Prevent UI/Audio override
             
             console.log("Target Found: " + index);
             if (navigator.vibrate) navigator.vibrate(200); // Phase 3: Haptics
