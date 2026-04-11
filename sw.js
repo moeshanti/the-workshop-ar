@@ -19,7 +19,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // 1. Explicitly skip Firebase/Firestore APIs to prevent opaque response corruption
+    // 1. Explicitly skip ONLY Firebase/Google APIs to prevent opaque corruption of databases
     if (event.request.url.includes('firestore.googleapis.com') || event.request.url.includes('google.com')) return;
 
     // 2. Network-First for HTML navigation
@@ -37,15 +37,14 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 3. Cache-First with Support for Safari 206 Byte-Range & Cross-Origin CDNs
+    // 3. Cache-First with Support for Safari 206 Byte-Range & Status 0 Opaque CDNs
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
             if (cachedResponse) return cachedResponse;
             return fetch(event.request).then((networkResponse) => {
-                // Allow 200 (Standard), 206 (Safari Video), and type 'cors' (Tailwind/A-Frame CDNs)
+                // Allow 200 (Standard), 206 (Safari Video), and 0 (Opaque CDNs like Tailwind/A-Frame)
                 if (!networkResponse || 
-                   (networkResponse.status !== 200 && networkResponse.status !== 206) || 
-                   (networkResponse.type !== 'basic' && networkResponse.type !== 'cors')) {
+                   (networkResponse.status !== 200 && networkResponse.status !== 206 && networkResponse.status !== 0)) {
                     return networkResponse;
                 }
                 return caches.open(CACHE_NAME).then((cache) => {

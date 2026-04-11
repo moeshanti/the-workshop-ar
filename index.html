@@ -549,6 +549,7 @@
 
         // --- ENTRY POINTS ---
         function enterExperience() {
+            if (hasEnteredExperience) return;
             // Phase 12: Secure Apple Audio Unlock.
             // iOS Safari requires audio.play() to be explicitly bound to a human tap.
             // We unlock the audio here with 0 volume, waiting for strict Promise resolution to pause it instantly.
@@ -609,6 +610,7 @@
 
         // --- AR TARGET LOGIC ---
         function onTargetFound(index) {
+            if (typeof isVideoActive !== "undefined" && isVideoActive) return;
             console.log("Target Found: " + index);
             isTargetFound = true;
             if (navigator.vibrate) navigator.vibrate(200); // Phase 3: Haptics
@@ -648,6 +650,7 @@
         }
 
         function onTargetLost(index) {
+            if (typeof isVideoActive !== "undefined" && isVideoActive) return;
             console.log("Target Lost: " + index);
             isTargetFound = false;
             if (window.cardTimer) { clearTimeout(window.cardTimer); window.cardTimer = null; }
