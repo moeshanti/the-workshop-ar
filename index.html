@@ -644,6 +644,9 @@
             }
             const scanBorder = document.querySelector('#scan-guide .border-2');
             if (scanBorder) scanBorder.classList.add('animate-scan');
+
+            const scanGuide = document.getElementById('scan-guide');
+            if (scanGuide) scanGuide.classList.remove('opacity-0');
         }
 
         function updateUI(index) {
