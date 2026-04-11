@@ -1025,11 +1025,41 @@
                 target1.addEventListener("targetLost", () => onTargetLost(1));
             }
 
-            // Phase 5: PWA Service Worker Registration
+            // Phase 5: PWA Service Worker Registration & UI Gatekeeper
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW Registered!', reg))
+                    .then(reg => {
+                        console.log('SW Registered!', reg);
+                        
+                        // Listen for a new service worker taking over
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            const enterBtn = document.getElementById('btn-enter');
+                            
+                            // Immediately lock the UI if an update starts downloading
+                            if (enterBtn) {
+                                enterBtn.innerText = "UPDATING EXPERIENCE...";
+                                enterBtn.style.opacity = "0.5";
+                                enterBtn.style.pointerEvents = "none";
+                            }
+
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // The download is complete. Force a silent reload to apply the new cache.
+                                    window.location.reload();
+                                }
+                            });
+                        });
+                    })
                     .catch(err => console.error('SW Error!', err));
+
+                // Fallback: If the SW controller changes unexpectedly, reload.
+                let refreshing;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (refreshing) return;
+                    refreshing = true;
+                    window.location.reload();
+                });
             }
 
             // Phase 5: Android PWA Install logic
