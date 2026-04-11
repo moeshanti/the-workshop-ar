@@ -431,6 +431,7 @@
         }
 
         function goToSleep() {
+            if (typeof isVideoActive !== "undefined" && isVideoActive) return;
             const idleScreen = document.getElementById('idle-screen');
             if (idleScreen) {
                 idleScreen.classList.remove('hidden');
@@ -1046,7 +1047,7 @@
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                     // The download is complete. Force a silent reload to apply the new cache.
-                                    window.location.reload();
+                                    if (!hasEnteredExperience) window.location.reload();
                                 }
                             });
                         });
@@ -1058,7 +1059,7 @@
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
                     if (refreshing) return;
                     refreshing = true;
-                    window.location.reload();
+                    if (!hasEnteredExperience) window.location.reload();
                 });
             }
 
