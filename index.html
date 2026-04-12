@@ -398,6 +398,16 @@
             50% { transform: translate3d(0, -12px, 0) scale(1.06); }
             100% { transform: translate3d(0, 0, 0) scale(1); }
         }
+
+        #landscape-warning {
+            display: none;
+        }
+
+        @media (orientation: landscape) {
+            #landscape-warning {
+                display: flex !important;
+            }
+        }
     </style>
 
     <script>
@@ -1491,6 +1501,12 @@
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- LANDSCAPE OVERLAY GUARD -->
+    <div id="landscape-warning" class="fixed inset-0 bg-black z-[9999999] flex-col items-center justify-center p-8 text-center items-center">
+        <svg class="w-16 h-16 text-white mb-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        <p class="text-white text-xl font-light tracking-widest leading-relaxed">Please rotate your device back to Portrait mode to use the AR Scanner.</p>
     </div>
 </body>
 
