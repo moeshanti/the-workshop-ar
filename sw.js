@@ -20,7 +20,7 @@
  - Lead AR and Motion Videos Designer: Shalesh Shekhar
 ==============================================================================
 */
-const CACHE_NAME = 'fann-ar-v1.6';
+const CACHE_NAME = 'fann-ar-v1.7';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
