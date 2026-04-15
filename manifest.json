@@ -1,6 +1,6 @@
 {
-  "name": "Fann À Porter AR Companion",
-  "short_name": "Fann AR",
+  "name": "Fann À Porter | AR Companion",
+  "short_name": "Fann À Porter AR",
   "description": "Experience Majd Kurdieh's artwork in Augmented Reality.",
   "start_url": "./?source=pwa",
   "display": "standalone",
@@ -9,9 +9,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "./assets/logo_fann.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
+      "src": "./assets/apple-touch-icon.png",
+      "sizes": "180x180 192x192 512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

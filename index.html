@@ -424,7 +424,7 @@
                 price: "AED 15,000",
                 video: "./assets/story.mp4",
                 shareCaption: "Witness the magic of Majd Kurdieh come to life! ✨🦋 #FannAPorter #ARArt",
-                whatsappNumber: "971559522980",
+                whatsappNumber: "971525114749",
                 catalogUrl: "https://www.fannaporter.com/exhibitions/96-the-journey-majd-kurdieh-solo-exhibition/overview/",
                 websiteUrl: "https://www.fannaporter.com/"
             },
@@ -435,7 +435,7 @@
                 price: "AED 30,000",
                 video: "./assets/story2.mp4",
                 shareCaption: "Witness 'Two Skies' by Majd Kurdieh come to life! ✨☁️ #FannAPorter #MajdKurdieh #TwoSkies",
-                whatsappNumber: "971559522980",
+                whatsappNumber: "971525114749",
                 catalogUrl: "https://www.fannaporter.com/exhibitions/96-the-journey-majd-kurdieh-solo-exhibition/overview/",
                 websiteUrl: "https://www.fannaporter.com/"
             }
@@ -622,6 +622,12 @@
             hasEnteredExperience = true;
             resumeAmbientAudio();
 
+            // Phase 16: Initialize MindAR Tracking Engine Strict User-Gesture Match
+            const sceneEl = document.querySelector('a-scene');
+            if (sceneEl && sceneEl.systems['mindar-image-system']) {
+                sceneEl.systems['mindar-image-system'].start();
+            }
+
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
             document.body.style.backgroundColor = 'transparent';
@@ -712,11 +718,10 @@
             document.getElementById('lbl-artist').innerText = data.artist || "Fann À Porter";
 
             // Buttons
-            const priceText = data.price === "Inquire" ? "Inquire" : `Inquire (${data.price})`;
-            document.getElementById('btn-text').innerText = priceText;
+            document.getElementById('btn-text').innerText = "Inquire";
 
             // Whatsapp logic
-            const message = `Hi! I am interested in the painting "${data.title}" (${data.price}). Is it available?`;
+            const message = `Hi! I am interested in the painting "${data.title}". Is it available?`;
             const url = `https://wa.me/${data.whatsappNumber}?text=${encodeURIComponent(message)}`;
 
             const btn = document.getElementById('btn-inquire');
@@ -930,7 +935,8 @@
             const originalText = btnText ? btnText.innerText : "SHARE STORY";
 
             const deepLink = window.location.href.split('?')[0] + "?view=story";
-            const shareText = `${data.shareCaption}\n\nTry it here: ${deepLink}`;
+            const baseText = data.shareCaption;
+            const fallbackText = `${baseText}\n\nTry it here: ${deepLink}`;
 
             if (btnText) btnText.innerText = "PREPARING...";
 
@@ -943,13 +949,13 @@
                 const shareData = {
                     files: [file],
                     title: data.title,
-                    text: shareText,
+                    text: baseText,
                     url: deepLink
                 };
 
                 const fallbackData = {
                     title: data.title,
-                    text: shareText,
+                    text: baseText,
                     url: deepLink
                 };
 
@@ -969,11 +975,11 @@
                     if (navigator.share) {
                         await navigator.share({
                             title: data.title,
-                            text: shareText,
+                            text: baseText,
                             url: deepLink
                         });
                     } else if (navigator.clipboard) {
-                        await navigator.clipboard.writeText(shareText);
+                        await navigator.clipboard.writeText(fallbackText);
                         alert("Caption & Link copied!");
                     }
                 } catch (e) {
@@ -1389,7 +1395,7 @@
 
     <!-- AR SCENE -->
     <a-scene
-        mindar-image="imageTargetSrc: ./assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01; uiScanning: no; uiLoading: no;"
+        mindar-image="imageTargetSrc: ./assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01; uiScanning: no; uiLoading: no; autoStart: false;"
         color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights; logarithmicDepthBuffer: true;"
         vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 
