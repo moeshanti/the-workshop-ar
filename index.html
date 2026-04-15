@@ -156,19 +156,6 @@
                                 const bflyIndex = node.material.findIndex(m => m.name === 'Butterfly_Mat');
                                 if (bflyIndex > -1) node.material[bflyIndex] = bflyMat;
                             }
-
-                            // 2. Surgical Depth Sorting Override
-                            if (node.name.toLowerCase().includes('moon')) {
-                                // Force Moon to draw first, regardless of dynamic bounding box center
-                                node.renderOrder = -1;
-                                
-                                // Array-Safe depthWrite override to prevent internal alpha-sorting overlap
-                                if (Array.isArray(node.material)) {
-                                    node.material.forEach(mat => mat.depthWrite = true);
-                                } else {
-                                    node.material.depthWrite = true;
-                                }
-                            }
                         }
                     });
                 });
