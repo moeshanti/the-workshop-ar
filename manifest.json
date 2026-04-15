@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "./assets/apple-touch-icon.png",
+      "src": "./assets/apple-icon-red.png",
       "sizes": "180x180 192x192 512x512",
       "type": "image/png",
       "purpose": "any maskable"

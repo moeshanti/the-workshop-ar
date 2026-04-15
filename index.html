@@ -30,7 +30,7 @@
     <title>Fann À Porter | AR Companion</title>
 
     <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+    <link rel="apple-touch-icon" href="./assets/apple-icon-red.png">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -457,7 +457,7 @@
             if (idleScreen && !idleScreen.classList.contains('hidden') && idleScreen.style.opacity === '1') {
                 wakeUp();
             }
-            idleTimer = setTimeout(goToSleep, 60000); // 60 seconds
+            idleTimer = setTimeout(goToSleep, 30000); // 30 seconds
         }
 
         function goToSleep() {
@@ -581,40 +581,43 @@
         function enterExperience() {
             if (hasEnteredExperience) return;
             // Phase 12: Secure Apple Audio Unlock.
-            // iOS Safari requires audio.play() to be explicitly bound to a human tap.
-            // We unlock the audio here with 0 volume, waiting for strict Promise resolution to pause it instantly.
-            // This prevents the 'Ghost Audio' overlap while securing Apple's playback clearance for the AR Scanner.
+            // Strict Mute/Unmute pattern to bypass iOS fractional volume leak
             const a0 = document.getElementById('bg-audio-0');
             const a1 = document.getElementById('bg-audio-1');
 
             if (a0) {
-                a0.volume = 0;
+                a0.muted = true;
                 a0.load();
                 const playPromise0 = a0.play();
                 if (playPromise0 !== undefined) {
-                    playPromise0.then(() => { if (!isTargetFound || window.currentArtworkIndex !== 0) a0.pause(); }).catch(e => { console.log("Audio 0 unlock blocked", e); });
+                    playPromise0.then(() => { 
+                        a0.pause(); 
+                        a0.muted = false; 
+                    }).catch(e => { console.log("Audio 0 unlock blocked", e); });
                 }
             }
             if (a1) {
-                a1.volume = 0;
+                a1.muted = true;
                 a1.load();
                 const playPromise1 = a1.play();
                 if (playPromise1 !== undefined) {
-                    playPromise1.then(() => { if (!isTargetFound || window.currentArtworkIndex !== 1) a1.pause(); }).catch(e => { console.log("Audio 1 unlock blocked", e); });
+                    playPromise1.then(() => { 
+                        a1.pause(); 
+                        a1.muted = false; 
+                    }).catch(e => { console.log("Audio 1 unlock blocked", e); });
                 }
             }
 
             // Phase 12+: Video Textures Unlock for iOS
             const bflyVid = document.getElementById('butterflyVideo');
             if (bflyVid) {
-                bflyVid.volume = 0;
+                bflyVid.muted = true;
                 bflyVid.load();
                 const playPromise = bflyVid.play();
                 if (playPromise !== undefined) {
                     playPromise.then(() => {
-                        if (!isTargetFound || window.currentArtworkIndex !== 0) {
-                            bflyVid.pause();
-                        }
+                        bflyVid.pause();
+                        bflyVid.muted = false;
                     }).catch(e => console.log("butterflyVideo unlock blocked", e));
                 }
             }
@@ -685,7 +688,7 @@
                         window.closeTimer = null;
                     }, 2500);
                     window.cardTimer = null;
-                }, 25000); // 25 seconds initial delay
+                }, 10000); // 10 seconds initial delay
             }
         }
 
