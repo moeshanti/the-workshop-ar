@@ -408,7 +408,7 @@
         }
 
         @media (orientation: landscape) {
-            #landscape-warning {
+            body:not(.video-mode) #landscape-warning {
                 display: flex !important;
             }
         }
@@ -842,6 +842,8 @@
             const modal = document.getElementById('video-modal');
             const video = document.getElementById('story-video');
 
+            document.body.classList.add('video-mode');
+
             // Set Source Dynamically
             if (!video.src.includes(data.video)) {
                 video.src = data.video;
@@ -888,6 +890,7 @@
             video.pause();
             modal.style.display = 'none';
             isVideoActive = false;
+            document.body.classList.remove('video-mode');
             closeVideoDrawer(); // Clean up state
             resumeAmbientAudio(); // Restore ambient music
 
