@@ -655,12 +655,25 @@
             }, 1000);
         }
 
+        // --- Strike 2: BLOB PRE-FETCHING ---
+        window.prefetchedBlobs = window.prefetchedBlobs || {};
+        function prefetchVideoBlob(index) {
+            const data = window.ARTWORK_DATA[index];
+            if (!data || !data.video || window.prefetchedBlobs[index]) return;
+            fetch(data.video)
+                .then(r => r.blob())
+                .then(blob => {
+                    window.prefetchedBlobs[index] = new File([blob], "video.mp4", { type: "video/mp4" });
+                }).catch(e => console.log('Blob prefetch failed', e));
+        }
+
         // --- AR TARGET LOGIC ---
         function onTargetFound(index) {
             if (typeof isVideoActive !== "undefined" && isVideoActive) return; // Prevent UI/Audio override
             if (isCardOpen && window.currentArtworkIndex !== index) return; // Protect reading state
             isTargetFound = true;
             window.currentArtworkIndex = index;
+            prefetchVideoBlob(index); // Strike 2: Prefetch blob on lock
             
             console.log("Target Found: " + index);
             if (navigator.vibrate) navigator.vibrate(200); // Phase 3: Haptics
@@ -953,11 +966,27 @@
 
             if (btnText) btnText.innerText = "PREPARING...";
 
+            // Strike 2: Meta API Limitation Fallback (Instagram drops text)
+            // Silently lock text to the clipboard so users can just Paste
+            let clipboardSuccess = false;
             try {
-                // 1. Fetch Video Blob
-                const response = await fetch(data.video);
-                const blob = await response.blob();
-                const file = new File([blob], "video.mp4", { type: "video/mp4" });
+                if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(fallbackText);
+                    if (btnText) btnText.innerText = "HASHTAGS COPIED!";
+                    clipboardSuccess = true;
+                    // Minor structural wait to ensure the user physically perceives the UI change
+                    await new Promise(r => setTimeout(r, 600)); 
+                }
+            } catch (e) { console.log("Clipboard write failed", e); }
+
+            try {
+                // Strike 2: Grab pre-fetched blob to prevent OS Share Timeout
+                let file = window.prefetchedBlobs && window.prefetchedBlobs[window.currentArtworkIndex];
+                if (!file) {
+                    const response = await fetch(data.video);
+                    const blob = await response.blob();
+                    file = new File([blob], "video.mp4", { type: "video/mp4" });
+                }
 
                 const shareData = {
                     files: [file],
@@ -991,7 +1020,7 @@
                             text: baseText,
                             url: deepLink
                         });
-                    } else if (navigator.clipboard) {
+                    } else if (navigator.clipboard && !clipboardSuccess) {
                         await navigator.clipboard.writeText(fallbackText);
                         alert("Caption & Link copied!");
                     }
@@ -1040,7 +1069,16 @@
                     const bflyV = document.getElementById('butterflyVideo');
                     if (bflyV) bflyV.pause();
                 } else {
-                    if (isTargetFound && !isVideoActive && !isStoryMode) {
+                    // Strike 2: WebRTC Background Resurrection
+                    if (hasEnteredExperience && !isVideoActive && !isStoryMode) {
+                        const sceneEl = document.querySelector('a-scene');
+                        if (sceneEl && sceneEl.systems['mindar-image-system']) {
+                            // Force engine reboot to recapture dead hardware token
+                            sceneEl.systems['mindar-image-system'].start();
+                        }
+                    }
+
+                    if (typeof isTargetFound !== "undefined" && isTargetFound && !isVideoActive && !isStoryMode) {
                         if (activeAudio) fadeAudio(activeAudio, 1, 1000);
 
                         // Resume AR video textures dynamically safely upon wake
