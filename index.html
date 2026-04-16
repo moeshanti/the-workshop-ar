@@ -509,6 +509,7 @@
 
             clearInterval(audioElement.fadeInterval);
             if (targetVolume > 0 && audioElement.paused) audioElement.play().catch(e => console.log('Audio play failed', e));
+            if (targetVolume > 0) audioElement.muted = false;
 
             audioElement.fadeInterval = setInterval(() => {
                 let newVol = audioElement.volume + volumeStep;
@@ -518,7 +519,7 @@
 
                 if (newVol === targetVolume) {
                     clearInterval(audioElement.fadeInterval);
-                    if (targetVolume === 0) audioElement.pause();
+                    if (targetVolume === 0) audioElement.muted = true;
                 }
             }, stepTime);
         }
@@ -531,12 +532,14 @@
                 if (aud !== newAudio) {
                     clearInterval(aud.fadeInterval);
                     aud.volume = 0;
-                    aud.pause();
+                    aud.muted = true;
                 }
             });
 
             if (newAudio && !isStoryMode) {
                 newAudio.volume = 0;
+                newAudio.muted = false;
+                if (newAudio.paused) newAudio.play().catch(e => console.log('Bg audio play failed', e));
                 if (hasEnteredExperience) {
                     fadeAudio(newAudio, 1, 1500);
                 }
@@ -549,7 +552,7 @@
                 if (instant) {
                     clearInterval(activeAudio.fadeInterval);
                     activeAudio.volume = 0;
-                    activeAudio.pause();
+                    activeAudio.muted = true;
                 } else {
                     fadeAudio(activeAudio, 0, 800);
                 }
@@ -581,30 +584,24 @@
         function enterExperience() {
             if (hasEnteredExperience) return;
             // Phase 12: Secure Apple Audio Unlock.
-            // Strict Mute/Unmute pattern to bypass iOS fractional volume leak
+            // Continuous muted playback bypasses iOS gesture revocation
             const a0 = document.getElementById('bg-audio-0');
             const a1 = document.getElementById('bg-audio-1');
 
             if (a0) {
                 a0.muted = true;
-                a0.load();
+                a0.volume = 0;
                 const playPromise0 = a0.play();
                 if (playPromise0 !== undefined) {
-                    playPromise0.then(() => { 
-                        a0.pause(); 
-                        a0.muted = false; 
-                    }).catch(e => { console.log("Audio 0 unlock blocked", e); });
+                    playPromise0.catch(e => { console.log("Audio 0 unlock blocked", e); });
                 }
             }
             if (a1) {
                 a1.muted = true;
-                a1.load();
+                a1.volume = 0;
                 const playPromise1 = a1.play();
                 if (playPromise1 !== undefined) {
-                    playPromise1.then(() => { 
-                        a1.pause(); 
-                        a1.muted = false; 
-                    }).catch(e => { console.log("Audio 1 unlock blocked", e); });
+                    playPromise1.catch(e => { console.log("Audio 1 unlock blocked", e); });
                 }
             }
 
