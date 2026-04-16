@@ -448,6 +448,7 @@
         let isVideoActive = false; // Phase 3 Fix: Locks ambient audio when video is playing
         let isTargetFound = false; // Phase 4 Fix: Verifies camera lock
         let hasEnteredExperience = false;
+        let isUpdatingSW = false; // Lock flag for SW Updates
 
         // --- PHASE 3: IDLE & AUDIO ENGINES ---
         let idleTimer;
@@ -573,6 +574,9 @@
                 if (scene) scene.remove();
 
                 const btn = document.getElementById('btn-enter');
+                btn.className = "border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95";
+                btn.style.opacity = "1";
+                btn.style.pointerEvents = "auto";
                 btn.innerText = "WATCH STORY";
                 btn.onclick = enterStoryMode;
 
@@ -1005,6 +1009,20 @@
         document.addEventListener("DOMContentLoaded", () => {
             checkUrlParams();
 
+            // Phase 17: PWA Cold-Start WebRTC Race Condition Fix
+            // Delay unlocking the UI by 2.5s to ensure iOS WebKit has bound the camera hardware
+            setTimeout(() => {
+                if (!isUpdatingSW && !isStoryMode) {
+                    const enterBtn = document.getElementById('btn-enter');
+                    if (enterBtn) {
+                        enterBtn.innerText = "ENTER EXPERIENCE";
+                        enterBtn.className = "border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95";
+                        enterBtn.style.opacity = "1";
+                        enterBtn.style.pointerEvents = "auto";
+                    }
+                }
+            }, 2500);
+
             // Phase 4: Handle Background/Minimized App Leak
             document.addEventListener("visibilitychange", () => {
                 if (document.hidden) {
@@ -1088,12 +1106,14 @@
                         
                         // Listen for a new service worker taking over
                         reg.addEventListener('updatefound', () => {
+                            isUpdatingSW = true; // Lock flag to prevent Cold-Start timeout collision
                             const newWorker = reg.installing;
                             const enterBtn = document.getElementById('btn-enter');
                             
                             // Immediately lock the UI if an update starts downloading
                             if (enterBtn) {
                                 enterBtn.innerText = "UPDATING EXPERIENCE...";
+                                enterBtn.className = "border-2 border-white/50 text-white/50 px-8 py-4 rounded-full text-sm font-bold tracking-widest transition pointer-events-none";
                                 enterBtn.style.opacity = "0.5";
                                 enterBtn.style.pointerEvents = "none";
                             }
@@ -1204,9 +1224,9 @@
             <img src="./assets/logo_fann.svg" alt="Fann À Porter" class="w-56 relative z-10 animate-ethereal">
         </div>
         <button id="btn-enter" onclick="enterExperience()"
-            class="border-2 border-white text-white px-8 py-4 rounded-full text-sm font-bold tracking-widest hover:bg-white hover:text-black transition cursor-pointer active:scale-95"
-            style="pointer-events: auto !important;">
-            ENTER EXPERIENCE
+            class="border-2 border-white/50 text-white/50 px-8 py-4 rounded-full text-sm font-bold tracking-widest transition pointer-events-none"
+            style="opacity: 0.5; pointer-events: none;">
+            INITIALIZING AR...
         </button>
 
         <div class="absolute bottom-6 w-full flex flex-col items-center justify-center text-[9px] text-white/30 tracking-widest font-light animate-focus-pull delay-500 pointer-events-none">
