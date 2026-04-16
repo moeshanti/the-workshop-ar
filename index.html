@@ -406,12 +406,6 @@
         #landscape-warning {
             display: none;
         }
-
-        @media (orientation: landscape) {
-            body:not(.video-mode) #landscape-warning {
-                display: flex !important;
-            }
-        }
     </style>
 
     <script>
@@ -458,8 +452,15 @@
             if (idleScreen && !idleScreen.classList.contains('hidden') && idleScreen.style.opacity === '1') {
                 wakeUp();
             }
-            idleTimer = setTimeout(goToSleep, 30000); // 30 seconds
+            idleTimer = setTimeout(goToSleep, 90000); // 90 seconds
         }
+
+        // Keep app awake as long as AR target is found
+        setInterval(() => {
+            if (typeof isTargetFound !== 'undefined' && isTargetFound) {
+                resetIdleTimer();
+            }
+        }, 15000);
 
         function goToSleep() {
             if (typeof isVideoActive !== "undefined" && isVideoActive) {
@@ -510,17 +511,15 @@
 
             clearInterval(audioElement.fadeInterval);
             if (targetVolume > 0 && audioElement.paused) audioElement.play().catch(e => console.log('Audio play failed', e));
-            if (targetVolume > 0) audioElement.muted = false;
 
             audioElement.fadeInterval = setInterval(() => {
                 let newVol = audioElement.volume + volumeStep;
                 if (newVol >= 1) newVol = 1;
-                if (newVol <= 0) newVol = 0;
+                if (newVol <= 0.001) newVol = 0.001; // Avoid strict zero to prevent WebKit sleep
                 audioElement.volume = newVol;
 
-                if (newVol === targetVolume) {
+                if ((volumeStep < 0 && newVol <= 0.001) || (volumeStep > 0 && newVol >= targetVolume) || newVol === targetVolume) {
                     clearInterval(audioElement.fadeInterval);
-                    if (targetVolume === 0) audioElement.muted = true;
                 }
             }, stepTime);
         }
@@ -532,13 +531,13 @@
             document.querySelectorAll('audio[id^="bg-audio-"]').forEach((aud) => {
                 if (aud !== newAudio) {
                     clearInterval(aud.fadeInterval);
-                    aud.volume = 0;
-                    aud.muted = true;
+                    aud.volume = 0.001; // Never strict zero
+                    aud.muted = false; 
                 }
             });
 
             if (newAudio && !isStoryMode) {
-                newAudio.volume = 0;
+                newAudio.volume = 0.001;
                 newAudio.muted = false;
                 if (newAudio.paused) newAudio.play().catch(e => console.log('Bg audio play failed', e));
                 if (hasEnteredExperience) {
@@ -552,8 +551,7 @@
             if (activeAudio) {
                 if (instant) {
                     clearInterval(activeAudio.fadeInterval);
-                    activeAudio.volume = 0;
-                    activeAudio.muted = true;
+                    activeAudio.volume = 0.001;
                 } else {
                     fadeAudio(activeAudio, 0, 800);
                 }
@@ -588,18 +586,32 @@
         function enterExperience() {
             if (hasEnteredExperience) return;
             // Phase 12: Secure Apple Audio Unlock.
-            // Continuous muted playback bypasses iOS gesture revocation
+            // A foolproof HTML5 trick to awaken WebKit's audio suspension
+            if (!window.globalAudioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    window.globalAudioCtx = new AudioContext();
+                    const osc = window.globalAudioCtx.createOscillator();
+                    osc.connect(window.globalAudioCtx.destination);
+                    osc.start(0);
+                    osc.stop(0.1); 
+                    if (window.globalAudioCtx.state === 'suspended') {
+                        window.globalAudioCtx.resume();
+                    }
+                }
+            }
+
             const a0 = document.getElementById('bg-audio-0');
             const a1 = document.getElementById('bg-audio-1');
 
             if (a0) {
-                a0.muted = true;
-                a0.volume = 0;
+                a0.muted = false;
+                a0.volume = 0.001;
                 a0.play().catch(e => { console.log("Audio 0 unlock blocked", e); });
             }
             if (a1) {
-                a1.muted = true;
-                a1.volume = 0;
+                a1.muted = false;
+                a1.volume = 0.001;
                 a1.play().catch(e => { console.log("Audio 1 unlock blocked", e); });
             }
 
@@ -1046,8 +1058,20 @@
             resetIdleTimer();
 
             // Phase 15: iOS Orientation Lock fix
+            const enforceOrientation = () => {
+                const warningEl = document.getElementById('landscape-warning');
+                if (!warningEl) return;
+                const isLandscape = window.innerWidth > window.innerHeight;
+                if (isLandscape && !document.body.classList.contains('video-mode')) {
+                    warningEl.style.setProperty('display', 'flex', 'important');
+                } else {
+                    warningEl.style.setProperty('display', 'none', 'important');
+                }
+            };
+
             window.addEventListener('orientationchange', () => {
                 setTimeout(() => {
+                    enforceOrientation();
                     const sceneEl = document.querySelector('a-scene');
                     if (sceneEl && sceneEl.camera) {
                         sceneEl.resize();
@@ -1056,6 +1080,8 @@
                     }
                 }, 300); // Wait for Safari UI to settle
             });
+            window.addEventListener('resize', enforceOrientation);
+            enforceOrientation();
 
             // Initial setup
             updateUI(0);
