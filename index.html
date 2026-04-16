@@ -515,11 +515,14 @@
             audioElement.fadeInterval = setInterval(() => {
                 let newVol = audioElement.volume + volumeStep;
                 if (newVol >= 1) newVol = 1;
-                if (newVol <= 0.001) newVol = 0.001; // Avoid strict zero to prevent WebKit sleep
+                if (newVol <= 0) newVol = 0; // Strict zero
                 audioElement.volume = newVol;
 
-                if ((volumeStep < 0 && newVol <= 0.001) || (volumeStep > 0 && newVol >= targetVolume) || newVol === targetVolume) {
+                if ((volumeStep < 0 && newVol <= 0) || (volumeStep > 0 && newVol >= targetVolume) || newVol === targetVolume) {
                     clearInterval(audioElement.fadeInterval);
+                    if (targetVolume === 0 || newVol === 0) {
+                        audioElement.pause();
+                    }
                 }
             }, stepTime);
         }
@@ -531,13 +534,13 @@
             document.querySelectorAll('audio[id^="bg-audio-"]').forEach((aud) => {
                 if (aud !== newAudio) {
                     clearInterval(aud.fadeInterval);
-                    aud.volume = 0.001; // Never strict zero
-                    aud.muted = false; 
+                    aud.pause();
+                    aud.volume = 0; // Strict zero
                 }
             });
 
             if (newAudio && !isStoryMode) {
-                newAudio.volume = 0.001;
+                newAudio.volume = 0;
                 newAudio.muted = false;
                 if (newAudio.paused) newAudio.play().catch(e => console.log('Bg audio play failed', e));
                 if (hasEnteredExperience) {
@@ -551,7 +554,8 @@
             if (activeAudio) {
                 if (instant) {
                     clearInterval(activeAudio.fadeInterval);
-                    activeAudio.volume = 0.001;
+                    activeAudio.pause();
+                    activeAudio.volume = 0;
                 } else {
                     fadeAudio(activeAudio, 0, 800);
                 }
@@ -604,15 +608,22 @@
             const a0 = document.getElementById('bg-audio-0');
             const a1 = document.getElementById('bg-audio-1');
 
+            // Bless the audio tags by playing and instantly pausing them to secure the WebAudio token
             if (a0) {
                 a0.muted = false;
-                a0.volume = 0.001;
-                a0.play().catch(e => { console.log("Audio 0 unlock blocked", e); });
+                a0.volume = 0;
+                const p0 = a0.play();
+                if (p0 !== undefined) {
+                    p0.then(() => { a0.pause(); }).catch(e => console.log("Audio 0 unlock blocked", e));
+                }
             }
             if (a1) {
                 a1.muted = false;
-                a1.volume = 0.001;
-                a1.play().catch(e => { console.log("Audio 1 unlock blocked", e); });
+                a1.volume = 0;
+                const p1 = a1.play();
+                if (p1 !== undefined) {
+                    p1.then(() => { a1.pause(); }).catch(e => console.log("Audio 1 unlock blocked", e));
+                }
             }
 
             // Phase 12+: Video Textures Unlock for iOS
