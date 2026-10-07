@@ -417,7 +417,7 @@
                 artist: "Majd Kurdieh",
                 price: "AED 15,000",
                 video: "./assets/story.mp4",
-                shareCaption: "Witness the magic of Majd Kurdieh come to life! ✨🦋 #FannAPorter #ARArt",
+                shareCaption: "Witness the magic of Majd Kurdieh come to life! ✨🦋 @fannaporter #ARArt",
                 whatsappNumber: "971525114749",
                 catalogUrl: "https://www.fannaporter.com/exhibitions/96-the-journey-majd-kurdieh-solo-exhibition/overview/",
                 websiteUrl: "https://www.fannaporter.com/"
@@ -428,7 +428,7 @@
                 artist: "Majd Kurdieh",
                 price: "AED 30,000",
                 video: "./assets/story2.mp4",
-                shareCaption: "Witness 'Two Skies' by Majd Kurdieh come to life! ✨☁️ #FannAPorter #MajdKurdieh #TwoSkies",
+                shareCaption: "Witness 'Two Skies' by Majd Kurdieh come to life! ✨☁️ @fannaporter #MajdKurdieh #TwoSkies",
                 whatsappNumber: "971525114749",
                 catalogUrl: "https://www.fannaporter.com/exhibitions/96-the-journey-majd-kurdieh-solo-exhibition/overview/",
                 websiteUrl: "https://www.fannaporter.com/"
@@ -719,7 +719,7 @@
                         window.closeTimer = null;
                     }, 2500);
                     window.cardTimer = null;
-                }, 10000); // 10 seconds initial delay
+                }, 12500); // 12.5 seconds initial delay (25% increase)
             }
         }
 
@@ -755,7 +755,7 @@
             document.getElementById('btn-text').innerText = "Inquire";
 
             // Whatsapp logic
-            const message = `Hi! I am interested in the painting "${data.title}". Is it available?`;
+            const message = `Hi! I am interested in this painting from the exhibition: ${data.catalogUrl}. Is it available?`;
             const url = `https://wa.me/${data.whatsappNumber}?text=${encodeURIComponent(message)}`;
 
             const btn = document.getElementById('btn-inquire');
@@ -983,7 +983,7 @@
             try {
                 if (navigator.clipboard) {
                     await navigator.clipboard.writeText(fallbackText);
-                    if (btnText) btnText.innerText = "HASHTAGS COPIED!";
+                    if (btnText) btnText.innerText = "CAPTION COPIED!";
                     clipboardSuccess = true;
                     // Minor structural wait to ensure the user physically perceives the UI change
                     await new Promise(r => setTimeout(r, 600)); 
