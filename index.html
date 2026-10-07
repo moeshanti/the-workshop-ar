@@ -414,23 +414,27 @@
             {
                 // Object 0: Butterfly Voyage
                 title: "The Butterfly Voyage",
+                quoteAr: "حين تطير أمام القمر يصير جرحك النجمة.",
+                quoteEn: "When you fly before the moon, your wound turns into a star.",
                 artist: "Majd Kurdieh",
-                price: "AED 15,000",
+                price: "",
                 video: "./assets/story.mp4",
                 shareCaption: "Witness the magic of Majd Kurdieh come to life! ✨🦋 @fannaporter #ARArt",
                 whatsappNumber: "971525114749",
-                catalogUrl: "https://www.fannaporter.com/exhibitions/96-the-journey-majd-kurdieh-solo-exhibition/overview/",
+                catalogUrl: "https://www.fannaporter.com/exhibitions/96-the-journey-majd-kurdieh-solo-exhibition/works/",
                 websiteUrl: "https://www.fannaporter.com/"
             },
             {
                 // Object 1: Two Skies
                 title: "Two Skies",
+                quoteAr: "من سماء إلى أختها يعبر الحالمون",
+                quoteEn: "From one sky to its sister, the dreamers travel",
                 artist: "Majd Kurdieh",
-                price: "AED 30,000",
+                price: "",
                 video: "./assets/story2.mp4",
                 shareCaption: "Witness 'Two Skies' by Majd Kurdieh come to life! ✨☁️ @fannaporter #MajdKurdieh #TwoSkies",
                 whatsappNumber: "971525114749",
-                catalogUrl: "https://www.fannaporter.com/exhibitions/96-the-journey-majd-kurdieh-solo-exhibition/overview/",
+                catalogUrl: "https://www.fannaporter.com/exhibitions/96-the-journey-majd-kurdieh-solo-exhibition/works/",
                 websiteUrl: "https://www.fannaporter.com/"
             }
         ];
@@ -748,7 +752,7 @@
             const data = window.ARTWORK_DATA[index];
 
             // Labels
-            document.getElementById('lbl-title').innerText = data.title;
+            document.getElementById('lbl-title').innerHTML = `<div dir="rtl" class="mb-1 leading-relaxed">${data.quoteAr}</div><div dir="ltr" class="text-sm opacity-80 italic">${data.quoteEn}</div>`;
             document.getElementById('lbl-artist').innerText = data.artist || "Fann À Porter";
 
             // Buttons
