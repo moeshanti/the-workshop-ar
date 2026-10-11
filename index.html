@@ -30,7 +30,8 @@
     <title>Fann À Porter | AR Companion</title>
 
     <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./assets/apple-icon-red.png">
+    <link rel="icon" type="image/png" href="./assets/apple-icon-red.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-icon-red.png">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -427,8 +428,8 @@
             {
                 // Object 1: Two Skies
                 title: "Two Skies",
-                quoteAr: "من سماء إلى أختها يعبر الحالمون",
-                quoteEn: "From one sky to its sister, the dreamers travel",
+                quoteAr: "\"من سماء إلى أختها يعبر الحالمون\" <span class=\"text-sm font-normal opacity-75\">- محمود درويش</span>",
+                quoteEn: "\"From one sky to its sister, the dreamers travel\" <span class=\"text-xs font-normal opacity-75 not-italic\">- Mahmoud Darwish</span>",
                 artist: "Majd Kurdieh",
                 price: "",
                 video: "./assets/story2.mp4",
@@ -1176,6 +1177,7 @@
                 navigator.serviceWorker.register('./sw.js')
                     .then(reg => {
                         console.log('SW Registered!', reg);
+                        reg.update();
                         
                         // Listen for a new service worker taking over
                         reg.addEventListener('updatefound', () => {
