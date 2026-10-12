@@ -20,7 +20,7 @@
 | `9ea6311` | `feat: UX timing polish, WhatsApp OG refactor, social tags, cache v1.24` | Drawer delay increased to 12.5s (retaining 2.5s peek); WhatsApp message refactored to use `${data.catalogUrl}`; `@fannaporter` share tags; clipboard toast to "CAPTION COPIED!"; cache bumped to `v1.24`. |
 | `a0ca087` | `feat: finalize client data polish (bilingual quotes, master url routing, cache v1.25)` | Injected `quoteAr` / `quoteEn` with directional `.innerHTML` rendering; pricing zeroed out; catalog URL routed to `/works/`; cache bumped to `v1.25`. |
 | `564d5fc` | `feat: Darwish title polish, restore red 'فن' PWA icon, harden QR cache headers, cache v1.26` | Injected Darwish quotes on Two Skies; normalized `manifest.json` discrete sizes & `<link rel="icon">`; hardened `_headers` for QR code root `/` and `/sw.js`; bumped cache to `v1.26`. |
-| `eae0f9d` | `feat: authentic discrete iOS/PWA icons, client verified social share copy, cache v1.27` | Generated discrete physical icons (180x180 root & assets, 192x192, 512x512, 32x32); aligned shareCaption to client's WhatsApp copy; bumped cache to `v1.27`. |
+| `e9aa1c2` | `feat: authentic discrete iOS/PWA icons, client verified social share copy, cache v1.27` | Generated discrete physical icons (180x180 root & assets, 192x192, 512x512, 32x32); aligned shareCaption to client's WhatsApp copy; bumped cache to `v1.27`. |
 
 * **Active Remote:** `origin/main` (`https://github.com/moeshanti/the-workshop-ar.git`)
 * **Working Tree:** Phase 4 adjustments applied. Clean diff against protected core.
