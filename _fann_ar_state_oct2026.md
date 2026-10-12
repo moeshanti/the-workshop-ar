@@ -2,7 +2,7 @@
 
 **Document Identifier:** `_fann_ar_state_oct2026.md`  
 **Creation Timestamp:** October 7, 2026 — 20:15:00 UTC+3  
-**Last Updated Timestamp:** October 11, 2026 — 17:20:00 UTC+3 (10/11/2026)  
+**Last Updated Timestamp:** October 12, 2026 — 23:00:00 UTC+3 (10/12/2026)  
 **Role Context:** Lead AI IDE Ledger for Chief Architect (Mohammad Shanti)  
 **Project:** Fann À Porter AR Companion (`moeshanti/the-workshop-ar`)  
 **Deployment Target:** Netlify (automated via `origin/main`)  
@@ -20,10 +20,11 @@
 | `9ea6311` | `feat: UX timing polish, WhatsApp OG refactor, social tags, cache v1.24` | Drawer delay increased to 12.5s (retaining 2.5s peek); WhatsApp message refactored to use `${data.catalogUrl}`; `@fannaporter` share tags; clipboard toast to "CAPTION COPIED!"; cache bumped to `v1.24`. |
 | `a0ca087` | `feat: finalize client data polish (bilingual quotes, master url routing, cache v1.25)` | Injected `quoteAr` / `quoteEn` with directional `.innerHTML` rendering; pricing zeroed out; catalog URL routed to `/works/`; cache bumped to `v1.25`. |
 | `564d5fc` | `feat: Darwish title polish, restore red 'فن' PWA icon, harden QR cache headers, cache v1.26` | Injected Darwish quotes on Two Skies; normalized `manifest.json` discrete sizes & `<link rel="icon">`; hardened `_headers` for QR code root `/` and `/sw.js`; bumped cache to `v1.26`. |
+| `eae0f9d` | `feat: authentic discrete iOS/PWA icons, client verified social share copy, cache v1.27` | Generated discrete physical icons (180x180 root & assets, 192x192, 512x512, 32x32); aligned shareCaption to client's WhatsApp copy; bumped cache to `v1.27`. |
 
 * **Active Remote:** `origin/main` (`https://github.com/moeshanti/the-workshop-ar.git`)
-* **Working Tree:** Phase 3 adjustments applied. Clean diff against protected core.
-* **Active Service Worker Cache Key:** `fann-ar-v1.26`
+* **Working Tree:** Phase 4 adjustments applied. Clean diff against protected core.
+* **Active Service Worker Cache Key:** `fann-ar-v1.27`
 
 
 ---
@@ -114,7 +115,40 @@
 
 ---
 
-## 4. Protected Core Architecture (Strictly Frozen — Zero Blast Radius)
+## 4. Phase 4 Specifications: Authentic PWA Icons & Client-Verified Social Copy (October 12, 2026)
+
+### 4.1. Resolution of iOS "F" Monogram & Authentic Icon Generation
+* **Root Cause:** iOS WebKit MobileSafari requires physical matching dimensions for `<link rel="apple-touch-icon">` and fetches `/apple-touch-icon.png` at root out-of-band. The previous implementation referenced a single `1501x1501` asset while declaring `180x180`, causing silent WebKit drop and fallback to a grey "F" monogram tile.
+* **Implementation:**
+  1. Generated physical discrete assets via native `sips` bicubic resampling:
+     - `/apple-touch-icon.png` (180x180) in root
+     - `/apple-touch-icon-precomposed.png` (180x180) in root
+     - `assets/apple-touch-icon-180x180.png` (180x180)
+     - `assets/icon-192.png` (192x192)
+     - `assets/icon-512.png` (512x512)
+     - `assets/favicon-32x32.png` (32x32)
+  2. Declared root fallback + explicit 180x180 in `index.html`.
+  3. Aligned `manifest.json` discrete entries to actual files (`icon-192.png`, `icon-512.png`).
+  4. Added root icon no-cache headers in `_headers`.
+
+### 4.2. Client-Verified Social Share Copy Aligned to WhatsApp Spec
+* **Technical Context:** Primary WhatsApp evidence from gallery director Zoya confirmed exact multi-line captions to be copied to clipboard and passed to native share sheets. Drawer titles and bilingual rendering remain untouched as explicitly approved.
+* **Implementation in `window.ARTWORK_DATA`:**
+  - **Artwork 0 ("The Butterfly Voyage"):**
+    ```javascript
+    shareCaption: `Majd Kurdieh\nحين تطير أمام القمر يصير جرحك النجمة،\nWhen you fly before the moon, your wound turns into a star, 2025\n@fannaporter`
+    ```
+  - **Artwork 1 ("Two Skies"):**
+    ```javascript
+    shareCaption: `Majd Kurdieh\n"من سماء إلى أختها يعبر الحالمون" - محمود درويش\n“From one sky to its sister, the dreamers travel.” -Mahmoud Darwish, 2025\n@fannaporter`
+    ```
+
+### 4.3. Cache Invalidation
+* **Implementation in `sw.js`:** Increment cache key to `fann-ar-v1.27`.
+
+---
+
+## 5. Protected Core Architecture (Strictly Frozen — Zero Blast Radius)
 
 Under the Zero Tolerance Protocol, the following core systems remain **100% unmodified**:
 1. **Feature Tracking Matrix:** [`assets/targets.mind`](file:///Users/mohammadelshanti/AntigravityProjects/the-workshop-ar/assets/targets.mind) (tracking stability verified).
@@ -122,13 +156,14 @@ Under the Zero Tolerance Protocol, the following core systems remain **100% unmo
 3. **3D Models:** [`The_Star.glb`](file:///Users/mohammadelshanti/AntigravityProjects/the-workshop-ar/assets/The_Star.glb), [`Two_Sky.glb`](file:///Users/mohammadelshanti/AntigravityProjects/the-workshop-ar/assets/Two_Sky.glb), and [`moon.glb`](file:///Users/mohammadelshanti/AntigravityProjects/the-workshop-ar/assets/moon.glb).
 4. **Narrative & Ambient Media:** [`music_butterflies.mp3`](file:///Users/mohammadelshanti/AntigravityProjects/the-workshop-ar/assets/music_butterflies.mp3), [`music_twoskies.mp3`](file:///Users/mohammadelshanti/AntigravityProjects/the-workshop-ar/assets/music_twoskies.mp3), [`story.mp4`](file:///Users/mohammadelshanti/AntigravityProjects/the-workshop-ar/assets/story.mp4), and [`story2.mp4`](file:///Users/mohammadelshanti/AntigravityProjects/the-workshop-ar/assets/story2.mp4).
 5. **Firebase Collection:** Rating submission keys and deduplication sets (`ratedArtworks`).
+6. **Drawer Presentation UI:** Bilingual quotes, Darwish attribution, and pricing structure.
 
 ---
 
-## 5. Instructions for Context Resumption
+## 6. Instructions for Context Resumption
 
 When re-opening this project in a future session:
 1. Ingest this file (`_fann_ar_state_oct2026.md`) as the primary ground truth.
 2. Verify git status is clean (`git status`).
-3. Check `sw.js` to confirm `CACHE_NAME` is at minimum `'fann-ar-v1.26'`.
-4. Ensure no modifications touch the protected core assets listed in Section 4.
+3. Check `sw.js` to confirm `CACHE_NAME` is at minimum `'fann-ar-v1.27'`.
+4. Ensure no modifications touch the protected core assets listed in Section 5.

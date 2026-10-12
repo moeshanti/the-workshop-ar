@@ -12,3 +12,10 @@
 
 /
   Cache-Control: no-cache, no-store, must-revalidate
+
+# 4. Apple Touch Icon root fallbacks
+/apple-touch-icon.png
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/apple-touch-icon-precomposed.png
+  Cache-Control: no-cache, no-store, must-revalidate
